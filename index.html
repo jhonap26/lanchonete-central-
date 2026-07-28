@@ -513,28 +513,48 @@ function registerValueLabelsPlugin(){
    Em vez de depender de uma <script src> estática no <head> (que pode
    perder a corrida contra o código inline em alguns ambientes/sandboxes),
    carregamos a biblioteca sob demanda e SEMPRE esperamos ela confirmar
-   que terminou de carregar antes de criar qualquer gráfico. */
+   que terminou de carregar antes de criar qualquer gráfico.
+   Fonte primária: arquivo local em vendor/ (não depende de CDN nem rede
+   externa). Caso o arquivo local falhe por algum motivo, caem para CDNs
+   públicos como reserva. */
+const CHART_LIB_SOURCES = [
+  'vendor/chart.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',
+  'https://unpkg.com/chart.js@4.4.4/dist/chart.umd.js',
+];
 let _chartLibPromise = null;
-function ensureChartLib(){
+function loadScriptOnce(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = ()=> reject(new Error('Falha ao carregar script: ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureChartLib(){
   if(typeof Chart !== 'undefined'){
     registerValueLabelsPlugin();
-    return Promise.resolve();
+    return;
   }
   if(_chartLibPromise) return _chartLibPromise;
-  _chartLibPromise = new Promise((resolve, reject)=>{
-    const existing = document.querySelector('script[data-chartjs-lib]');
-    if(existing){
-      existing.addEventListener('load', ()=>{ registerValueLabelsPlugin(); resolve(); });
-      existing.addEventListener('error', ()=> reject(new Error('Falha ao carregar a biblioteca de gráficos (Chart.js).')));
-      return;
+  _chartLibPromise = (async ()=>{
+    let lastError = null;
+    for(const src of CHART_LIB_SOURCES){
+      try{
+        await loadScriptOnce(src);
+        if(typeof Chart !== 'undefined'){
+          registerValueLabelsPlugin();
+          return;
+        }
+      }catch(e){
+        lastError = e;
+      }
     }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js';
-    s.crossOrigin = 'anonymous';
-    s.setAttribute('data-chartjs-lib', '1');
-    s.onload = ()=>{ registerValueLabelsPlugin(); resolve(); };
-    s.onerror = ()=> reject(new Error('Falha ao carregar a biblioteca de gráficos (Chart.js).'));
-    document.head.appendChild(s);
+    throw lastError || new Error('Falha ao carregar a biblioteca de gráficos (Chart.js).');
+  })().catch(err=>{
+    _chartLibPromise = null;
+    throw err;
   });
   return _chartLibPromise;
 }
