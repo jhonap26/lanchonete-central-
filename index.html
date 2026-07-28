@@ -651,6 +651,7 @@ const state = {
   cadastroSub: 'fornecedores',
   filtroLanc: { periodo:'mes', mes: new Date().getMonth(), dia:'', movimento:'todos', categoria:'todos', conta:'todos', fornecedor:'todos', busca:'' },
   mensalMes: 0,
+  filtroVendasDia: { inicio:'', fim:'' },
 };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -1749,6 +1750,31 @@ function montarCamposForm(mov, editId){
 
 /* ================= VIEW: MENSAL ================= */
 let chartMensal = null;
+let chartVendasDia = null;
+let mensalFiltroVendasAberto = false;
+
+function vendasNoPeriodo(inicio, fim){
+  return state.entries.filter(e=>{
+    if(e.movimento!=='entrada') return false;
+    if(!e.categoria || !e.categoria.startsWith('Vendas')) return false;
+    if(inicio && e.data < inicio) return false;
+    if(fim && e.data > fim) return false;
+    return true;
+  }).reduce((a,e)=>a+Number(e.valor||0),0);
+}
+
+function vendasPorDiaNoMes(ano, mes){
+  const ultimoDia = new Date(ano, mes+1, 0).getDate();
+  const totais = new Array(ultimoDia).fill(0);
+  state.entries.forEach(e=>{
+    if(e.movimento!=='entrada') return;
+    if(!e.categoria || !e.categoria.startsWith('Vendas')) return;
+    if(entryYear(e)!==ano || entryMonth(e)!==mes) return;
+    const dia = parseInt(e.data.slice(8,10), 10);
+    totais[dia-1] += Number(e.valor||0);
+  });
+  return totais;
+}
 
 function renderMensal(){
   const anos = anosDisponiveis();
@@ -1778,6 +1804,17 @@ function renderMensal(){
   const totalEnt = entCatArr.reduce((a,[,v])=>a+v,0);
   const totalSai = saiCatArr.reduce((a,[,v])=>a+v,0);
 
+  const hoje = new Date().toISOString().slice(0,10);
+  const filtroVD = state.filtroVendasDia;
+  const filtroVDAtivo = !!(filtroVD.inicio && filtroVD.fim);
+  const totalVendasPeriodo = filtroVDAtivo ? vendasNoPeriodo(filtroVD.inicio, filtroVD.fim) : vendasNoPeriodo(hoje, hoje);
+  const labelVendasPeriodo = filtroVDAtivo
+    ? `Vendas de ${formatDateBR(filtroVD.inicio)} até ${formatDateBR(filtroVD.fim)}`
+    : `Vendas de hoje — ${formatDateBR(hoje)}`;
+
+  const vendasDiaArr = vendasPorDiaNoMes(ano, mes);
+  const totalVendasMes = vendasDiaArr.reduce((a,b)=>a+b,0);
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-3" style="margin-bottom:20px;">
       <div class="card">
@@ -1794,6 +1831,31 @@ function renderMensal(){
         <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
         <div class="stat-label">Saldo do Mês</div>
         <div class="stat-value">${formatBRL(totalEnt-totalSai)}</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-head">
+        <div>
+          <div class="card-icon icon-green" style="margin-bottom:10px;"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
+          <div class="stat-label">${labelVendasPeriodo}</div>
+          <div class="stat-value" style="color:var(--green); font-size:27px;">${formatBRL(totalVendasPeriodo)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" id="btnToggleFiltroVendasDia">Filtrar período</button>
+        </div>
+      </div>
+      <div class="filter-bar" id="painelFiltroVendasDia" style="display:${(mensalFiltroVendasAberto||filtroVDAtivo)?'flex':'none'};">
+        <div class="field">
+          <label>Data inicial</label>
+          <input type="date" id="fVendasDiaInicio" value="${filtroVD.inicio||''}">
+        </div>
+        <div class="field">
+          <label>Data final</label>
+          <input type="date" id="fVendasDiaFim" value="${filtroVD.fim||''}">
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnAplicarFiltroVendasDia">Aplicar</button>
+        <button class="btn btn-outline btn-sm" id="btnLimparFiltroVendasDia">Limpar</button>
       </div>
     </div>
 
@@ -1815,6 +1877,11 @@ function renderMensal(){
     </div>
 
     <div class="panel">
+      <div class="panel-head"><h3>Vendas por dia — ${MESES[mes]}</h3></div>
+      <div class="chart-box small" id="boxVendasDia"><canvas id="canvasVendasDia"></canvas></div>
+    </div>
+
+    <div class="panel">
       <div class="panel-head"><h3>Maiores saídas do mês</h3></div>
       <div class="chart-box small" id="boxMensal"><canvas id="canvasMensal"></canvas></div>
     </div>
@@ -1822,6 +1889,59 @@ function renderMensal(){
 
   document.getElementById('selMensalAno').addEventListener('change', e=>{ state.mensalAno = Number(e.target.value); renderMensal(); });
   document.getElementById('selMensalMes').addEventListener('change', e=>{ state.mensalMes = Number(e.target.value); renderMensal(); });
+
+  document.getElementById('btnToggleFiltroVendasDia').addEventListener('click', ()=>{
+    mensalFiltroVendasAberto = !mensalFiltroVendasAberto;
+    renderMensal();
+  });
+  document.getElementById('btnAplicarFiltroVendasDia').addEventListener('click', ()=>{
+    const inicio = document.getElementById('fVendasDiaInicio').value;
+    const fim = document.getElementById('fVendasDiaFim').value;
+    if(!inicio || !fim){ toast('Selecione a data inicial e a data final para aplicar o filtro.'); return; }
+    state.filtroVendasDia = inicio <= fim ? { inicio, fim } : { inicio: fim, fim: inicio };
+    mensalFiltroVendasAberto = true;
+    renderMensal();
+  });
+  document.getElementById('btnLimparFiltroVendasDia').addEventListener('click', ()=>{
+    state.filtroVendasDia = { inicio:'', fim:'' };
+    mensalFiltroVendasAberto = false;
+    renderMensal();
+  });
+
+  if(!totalVendasMes){
+    chartEmptyState('boxVendasDia', 'Nenhuma venda registrada neste mês.');
+  } else {
+    ensureChartLib().then(()=>{
+      try{
+        const ctx = document.getElementById('canvasVendasDia');
+        if(!ctx) return;
+        if(chartVendasDia) chartVendasDia.destroy();
+        chartVendasDia = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels: vendasDiaArr.map((_,i)=> String(i+1)),
+            datasets:[{ data: vendasDiaArr, backgroundColor:'#2E8F5B', borderRadius:5, maxBarThickness:22 }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false},
+              tooltip:{ backgroundColor:'#1D2420', padding:10, cornerRadius:8, callbacks:{ label:(c)=> ` ${formatBRL(c.parsed.y)}` } } },
+            scales:{
+              y:{ ticks:{ callback:(v)=>'R$ '+v.toLocaleString('pt-BR'), font:{family:'Inter'} }, grid:{color:'#EEF0EA'} },
+              x:{ grid:{display:false}, ticks:{font:{family:'Inter', size:11}} }
+            }
+          }
+        });
+        requestAnimationFrame(()=>{ try{ chartVendasDia && chartVendasDia.resize(); }catch(e){} });
+      } catch(e){
+        console.error('Falha ao criar gráfico de vendas por dia:', e);
+        chartEmptyState('boxVendasDia', 'Não foi possível carregar o gráfico agora.');
+      }
+    }).catch((err)=>{
+      console.error('Não foi possível carregar a biblioteca de gráficos:', err);
+      chartEmptyState('boxVendasDia', 'Não foi possível carregar a biblioteca de gráficos.');
+    });
+  }
 
   const top = saiCatArr.slice(0,8);
   if(!top.length){
