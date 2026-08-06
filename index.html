@@ -1363,25 +1363,6 @@ function renderLancamentos(){
       </form>
     </div>
 
-    <div class="grid grid-4" style="margin-bottom:18px;">
-      <div class="card">
-        <div class="stat-label">Vendas hoje</div>
-        <div class="stat-value" id="statVendasHoje" style="font-size:22px;">0</div>
-      </div>
-      <div class="card">
-        <div class="stat-label">Vendas no mês</div>
-        <div class="stat-value" id="statVendasMes" style="font-size:22px;">0</div>
-      </div>
-      <div class="card">
-        <div class="stat-label">Faturado hoje</div>
-        <div class="stat-value" id="statFatHoje" style="font-size:22px;">R$ 0</div>
-      </div>
-      <div class="card">
-        <div class="stat-label">Faturado no mês</div>
-        <div class="stat-value" id="statFatMes" style="font-size:22px;">R$ 0</div>
-      </div>
-    </div>
-
     <div class="panel">
       <div class="panel-head"><h3>Filtrar lançamentos</h3></div>
       <div class="filter-bar">
@@ -1438,6 +1419,16 @@ function renderLancamentos(){
           </select>
         </div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Lista de lançamentos</h3>
+        <div class="actions" style="align-items:center;">
+          <span class="mini-note" id="countInfo" style="margin:0;"></span>
+          <button class="btn btn-outline btn-sm" id="btnToggleCorrecaoLote">Corrigir conta em lote</button>
+        </div>
+      </div>
       <div class="search-row">
         <div class="search-wrap">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -1449,32 +1440,21 @@ function renderLancamentos(){
         </button>
         <button class="btn btn-outline btn-sm" id="btnLimparBusca">Limpar</button>
       </div>
-    </div>
-
-    <div class="panel" style="border:1.5px dashed var(--border-strong); background:var(--surface-2);">
-      <div class="panel-head">
-        <h3>Corrigir conta em lote</h3>
-        <span class="mini-note" style="margin:0;">Aplica aos lançamentos que estão na lista filtrada abaixo</span>
-      </div>
-      <div class="filter-bar">
-        <div class="field">
-          <label>Mover para a conta</label>
-          <select id="fBulkConta">
-            ${state.contas.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
-            <option value="${CONTA_NAO_CLASSIFICADO}">— Não classificado — (zera o saldo desses lançamentos)</option>
-          </select>
+      <div id="painelCorrecaoLote" style="display:none; border:1.5px dashed var(--border-strong); background:var(--surface-2); border-radius:var(--r); padding:16px; margin-top:14px;">
+        <div class="mini-note" style="margin:0 0 12px;">Aplica aos lançamentos que estão na lista filtrada abaixo</div>
+        <div class="filter-bar" style="margin-bottom:0;">
+          <div class="field">
+            <label>Mover para a conta</label>
+            <select id="fBulkConta">
+              ${state.contas.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+              <option value="${CONTA_NAO_CLASSIFICADO}">— Não classificado — (zera o saldo desses lançamentos)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnAplicarLote">Aplicar aos lançamentos filtrados</button>
         </div>
-        <button class="btn btn-primary btn-sm" id="btnAplicarLote">Aplicar aos lançamentos filtrados</button>
+        <div class="mini-note" style="margin-top:10px;">Use os filtros acima (categoria, fornecedor, período, movimento) para isolar exatamente o grupo que você quer corrigir — por exemplo, filtre pelo período antigo (antes de você começar a controlar as contas) e aplique "Não classificado": esses lançamentos somem dos cards de Espécie/Banco A/Banco B/Montante Total, mas continuam contando normalmente no Faturamento, Despesas e Lucro Líquido. Transferências não são afetadas por essa ação.</div>
       </div>
-      <div class="mini-note">Use os filtros acima (categoria, fornecedor, período, movimento) para isolar exatamente o grupo que você quer corrigir — por exemplo, filtre pelo período antigo (antes de você começar a controlar as contas) e aplique "Não classificado": esses lançamentos somem dos cards de Espécie/Banco A/Banco B/Montante Total, mas continuam contando normalmente no Faturamento, Despesas e Lucro Líquido. Transferências não são afetadas por essa ação.</div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Lista de lançamentos</h3>
-        <span class="mini-note" id="countInfo" style="margin:0;"></span>
-      </div>
-      <div class="table-wrap">
+      <div class="table-wrap" style="margin-top:14px;">
         <table class="data">
           <thead><tr>
             <th>Data</th><th>Movimento</th><th>Categoria</th><th>Descrição</th><th>Conta</th><th>Forma Pgto</th><th>Status</th><th style="text-align:right;">Valor</th><th></th>
@@ -1536,8 +1516,11 @@ function renderLancamentos(){
     atualizarListaLanc();
   });
   document.getElementById('btnAplicarLote').addEventListener('click', aplicarCorrecaoContaLote);
+  document.getElementById('btnToggleCorrecaoLote').addEventListener('click', ()=>{
+    const el = document.getElementById('painelCorrecaoLote');
+    el.style.display = el.style.display==='none' ? 'block' : 'none';
+  });
 
-  atualizarStatsLanc();
   atualizarListaLanc();
 }
 
@@ -1556,19 +1539,7 @@ async function aplicarCorrecaoContaLote(){
   state.entries.forEach(e=>{ if(idsAlvo.has(e.id)) e.conta = novaConta; });
   await persistEntries();
   toastSuccess(`${alvoValido.length} lançamento(s) movido(s) para ${nomeConta} com sucesso!`);
-  atualizarStatsLanc();
   atualizarListaLanc();
-}
-
-function atualizarStatsLanc(){
-  const hoje = new Date().toISOString().slice(0,10);
-  const now = new Date();
-  const vendasHoje = state.entries.filter(e=>e.movimento==='entrada' && e.categoria && e.categoria.startsWith('Vendas') && e.data===hoje);
-  const vendasMes = state.entries.filter(e=>e.movimento==='entrada' && e.categoria && e.categoria.startsWith('Vendas') && entryYear(e)===now.getFullYear() && entryMonth(e)===now.getMonth());
-  document.getElementById('statVendasHoje').textContent = vendasHoje.length;
-  document.getElementById('statVendasMes').textContent = vendasMes.length;
-  document.getElementById('statFatHoje').textContent = formatBRL(vendasHoje.reduce((a,e)=>a+Number(e.valor||0),0));
-  document.getElementById('statFatMes').textContent = formatBRL(vendasMes.reduce((a,e)=>a+Number(e.valor||0),0));
 }
 
 function atualizarListaLanc(){
@@ -1636,7 +1607,6 @@ function atualizarListaLanc(){
       state.entries = state.entries.filter(e=>e.id!==btn.dataset.del);
       await persistEntries();
       toast('Lançamento excluído.');
-      atualizarStatsLanc();
       atualizarListaLanc();
       atualizarSaldoMiniIfExists();
     });
@@ -1743,7 +1713,6 @@ function montarCamposForm(mov, editId){
     await persistEntries();
     toastSuccess(editId ? 'Lançamento atualizado com sucesso!' : 'Lançamento salvo com sucesso!');
     fecharFormLanc();
-    atualizarStatsLanc();
     atualizarListaLanc();
   };
 }
