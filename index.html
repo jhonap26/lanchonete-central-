@@ -650,7 +650,8 @@ const state = {
   currentView: 'dashboard',
   cadastroSub: 'fornecedores',
   filtroLanc: { periodo:'mes', mes: new Date().getMonth(), dia:'', movimento:'todos', categoria:'todos', conta:'todos', fornecedor:'todos', busca:'' },
-  mensalMes: 0,
+  mensalMes: new Date().getMonth(),
+  mensalAno: new Date().getFullYear(),
   filtroVendasDia: { inicio:'', fim:'' },
 };
 
@@ -1720,6 +1721,7 @@ function montarCamposForm(mov, editId){
 /* ================= VIEW: MENSAL ================= */
 let chartMensal = null;
 let chartVendasDia = null;
+let chartDespesaPct = null;
 let mensalFiltroVendasAberto = false;
 
 function vendasNoPeriodo(inicio, fim){
@@ -1768,10 +1770,6 @@ function renderMensal(){
     list.forEach(e=>{ map[e.categoria] = (map[e.categoria]||0) + Number(e.valor||0); });
     return Object.entries(map).sort((a,b)=>b[1]-a[1]);
   };
-  const entCatArr = porCategoria(entradasMes);
-  const saiCatArr = porCategoria(saidasMes);
-  const totalEnt = entCatArr.reduce((a,[,v])=>a+v,0);
-  const totalSai = saiCatArr.reduce((a,[,v])=>a+v,0);
 
   const hoje = new Date().toISOString().slice(0,10);
   const filtroVD = state.filtroVendasDia;
@@ -1781,25 +1779,67 @@ function renderMensal(){
     ? `Vendas de ${formatDateBR(filtroVD.inicio)} até ${formatDateBR(filtroVD.fim)}`
     : `Vendas de hoje — ${formatDateBR(hoje)}`;
 
+  // Cards de resumo do topo (Entradas/Saídas/Saldo do Mês) sempre seguem o seletor de Mês/Ano,
+  // independente do filtro de período do card de Vendas do Dia.
+  const totalEntMes = entradasMes.reduce((a,e)=>a+Number(e.valor||0),0);
+  const totalSaiMes = saidasMes.reduce((a,e)=>a+Number(e.valor||0),0);
+
+  // Painéis "Entradas por categoria" / "Saídas por categoria": quando o filtro de período de
+  // vendas está ativo, passam a considerar só os lançamentos dentro desse intervalo de datas
+  // (em vez do mês inteiro). Sem filtro ativo, comportamento igual ao de sempre (mês/ano do topo).
+  const entradasCat = filtroVDAtivo
+    ? state.entries.filter(e=> e.movimento==='entrada' && e.data >= filtroVD.inicio && e.data <= filtroVD.fim)
+    : entradasMes;
+  const saidasCatRaw = filtroVDAtivo
+    ? state.entries.filter(e=> e.movimento==='saida' && e.data >= filtroVD.inicio && e.data <= filtroVD.fim)
+    : saidasMes;
+  // Só entram categorias oficiais de despesa (state.categorias.saidas) — lançamentos antigos que
+  // têm nome de fornecedor no campo categoria não aparecem mais aqui, mas continuam contando
+  // normalmente no total de Despesas/Lucro Líquido em outros lugares do sistema.
+  const saidasCat = saidasCatRaw.filter(e=> state.categorias.saidas.includes(e.categoria));
+
+  const entCatArr = porCategoria(entradasCat);
+  const saiCatArr = porCategoria(saidasCat);
+  const totalEntCat = entCatArr.reduce((a,[,v])=>a+v,0);
+  const totalSaiCat = saiCatArr.reduce((a,[,v])=>a+v,0);
+  const periodoCatLabel = filtroVDAtivo ? `${formatDateBR(filtroVD.inicio)} a ${formatDateBR(filtroVD.fim)}` : '';
+
+  // "Vendas por dia" e "Maiores saídas do mês" (abaixo) NÃO são afetados pelo filtro de período —
+  // continuam sempre baseados no mês/ano selecionado no topo.
   const vendasDiaArr = vendasPorDiaNoMes(ano, mes);
   const totalVendasMes = vendasDiaArr.reduce((a,b)=>a+b,0);
+  const saiCatArrMes = porCategoria(saidasMes);
+
+  // Gráfico de % de cada categoria de despesa sobre o faturamento (Ajuste 5): mesma fonte de
+  // dados que o painel "Saídas por categoria" (respeita o filtro de período), agrupando
+  // "Insumos Lanchonete" + "Insumos Produção" numa única barra "CMV".
+  const CMV_CATEGORIAS = ['Insumos Lanchonete', 'Insumos Produção'];
+  let cmvTotal = 0;
+  const despesaPctBase = [];
+  saiCatArr.forEach(([cat, v])=>{
+    if(CMV_CATEGORIAS.includes(cat)) cmvTotal += v;
+    else despesaPctBase.push([cat, v]);
+  });
+  if(cmvTotal > 0) despesaPctBase.push(['CMV', cmvTotal]);
+  despesaPctBase.sort((a,b)=> b[1]-a[1]);
+  const despesaPctArr = despesaPctBase.map(([cat,v])=> ({ cat, pct: totalEntCat>0 ? (v/totalEntCat*100) : 0 }));
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-3" style="margin-bottom:20px;">
       <div class="card">
         <div class="card-icon icon-green"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
         <div class="stat-label">Entradas — ${MESES[mes]}</div>
-        <div class="stat-value" style="color:var(--green);">${formatBRL(totalEnt)}</div>
+        <div class="stat-value" style="color:var(--green);">${formatBRL(totalEntMes)}</div>
       </div>
       <div class="card">
         <div class="card-icon icon-red"><svg viewBox="0 0 24 24"><path d="M4 8l6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg></div>
         <div class="stat-label">Saídas — ${MESES[mes]}</div>
-        <div class="stat-value" style="color:var(--red);">${formatBRL(totalSai)}</div>
+        <div class="stat-value" style="color:var(--red);">${formatBRL(totalSaiMes)}</div>
       </div>
       <div class="card tone-total">
         <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
         <div class="stat-label">Saldo do Mês</div>
-        <div class="stat-value">${formatBRL(totalEnt-totalSai)}</div>
+        <div class="stat-value">${formatBRL(totalEntMes-totalSaiMes)}</div>
       </div>
     </div>
 
@@ -1830,19 +1870,33 @@ function renderMensal(){
 
     <div class="grid grid-2">
       <div class="panel">
-        <div class="panel-head"><h3>Entradas por categoria</h3></div>
+        <div class="panel-head">
+          <h3>Entradas por categoria</h3>
+          ${periodoCatLabel? `<span class="mini-note" style="margin:0;">${periodoCatLabel}</span>`:''}
+        </div>
         ${entCatArr.length? entCatArr.map(([cat,v])=>`
           <div class="ticket-line"><span class="lbl">${cat}</span><span class="dots"></span><span class="val pos">${formatBRL(v)}</span></div>
-        `).join('') : '<div class="empty-state"><div class="ico">◇</div>Nenhuma entrada neste mês</div>'}
-        ${entCatArr.length? `<div class="ticket-line ticket-total"><span class="lbl">Total</span><span class="dots"></span><span class="val pos">${formatBRL(totalEnt)}</span></div>`:''}
+        `).join('') : `<div class="empty-state"><div class="ico">◇</div>Nenhuma entrada ${filtroVDAtivo?'neste período':'neste mês'}</div>`}
+        ${entCatArr.length? `<div class="ticket-line ticket-total"><span class="lbl">Total</span><span class="dots"></span><span class="val pos">${formatBRL(totalEntCat)}</span></div>`:''}
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Saídas por categoria</h3></div>
+        <div class="panel-head">
+          <h3>Saídas por categoria</h3>
+          ${periodoCatLabel? `<span class="mini-note" style="margin:0;">${periodoCatLabel}</span>`:''}
+        </div>
         ${saiCatArr.length? saiCatArr.map(([cat,v])=>`
           <div class="ticket-line"><span class="lbl">${cat}</span><span class="dots"></span><span class="val neg">${formatBRL(v)}</span></div>
-        `).join('') : '<div class="empty-state"><div class="ico">◇</div>Nenhuma saída neste mês</div>'}
-        ${saiCatArr.length? `<div class="ticket-line ticket-total"><span class="lbl">Total</span><span class="dots"></span><span class="val neg">${formatBRL(totalSai)}</span></div>`:''}
+        `).join('') : `<div class="empty-state"><div class="ico">◇</div>Nenhuma saída ${filtroVDAtivo?'neste período':'neste mês'}</div>`}
+        ${saiCatArr.length? `<div class="ticket-line ticket-total"><span class="lbl">Total</span><span class="dots"></span><span class="val neg">${formatBRL(totalSaiCat)}</span></div>`:''}
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Despesas em % do faturamento</h3>
+        ${periodoCatLabel? `<span class="mini-note" style="margin:0;">${periodoCatLabel}</span>`:''}
+      </div>
+      <div class="chart-box small" id="boxDespesaPct"><canvas id="canvasDespesaPct"></canvas></div>
     </div>
 
     <div class="panel">
@@ -1912,7 +1966,42 @@ function renderMensal(){
     });
   }
 
-  const top = saiCatArr.slice(0,8);
+  if(!despesaPctArr.length || totalEntCat<=0){
+    chartEmptyState('boxDespesaPct', totalEntCat<=0 && despesaPctArr.length ? 'Sem faturamento no período para calcular o percentual.' : `Nenhuma despesa registrada ${filtroVDAtivo?'neste período':'neste mês'}.`);
+  } else {
+    ensureChartLib().then(()=>{
+      try{
+        const ctx = document.getElementById('canvasDespesaPct');
+        if(!ctx) return;
+        if(chartDespesaPct) chartDespesaPct.destroy();
+        chartDespesaPct = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels: despesaPctArr.map(d=> `${d.cat} — ${d.pct.toLocaleString('pt-BR',{minimumFractionDigits:1, maximumFractionDigits:1})}%`),
+            datasets:[{ data: despesaPctArr.map(d=>d.pct), backgroundColor:'#D6483D', borderRadius:5, maxBarThickness:22 }]
+          },
+          options:{
+            indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false},
+              tooltip:{ backgroundColor:'#1D2420', padding:10, cornerRadius:8, callbacks:{ label:(c)=> ` ${c.parsed.x.toLocaleString('pt-BR',{minimumFractionDigits:1, maximumFractionDigits:1})}%` } } },
+            scales:{
+              x:{ ticks:{ callback:(v)=>v.toLocaleString('pt-BR')+'%', font:{family:'Inter'} }, grid:{color:'#EEF0EA'} },
+              y:{ grid:{display:false}, ticks:{font:{family:'Inter', size:12}} }
+            }
+          }
+        });
+        requestAnimationFrame(()=>{ try{ chartDespesaPct && chartDespesaPct.resize(); }catch(e){} });
+      } catch(e){
+        console.error('Falha ao criar gráfico de despesas em % do faturamento:', e);
+        chartEmptyState('boxDespesaPct', 'Não foi possível carregar o gráfico agora.');
+      }
+    }).catch((err)=>{
+      console.error('Não foi possível carregar a biblioteca de gráficos:', err);
+      chartEmptyState('boxDespesaPct', 'Não foi possível carregar a biblioteca de gráficos.');
+    });
+  }
+
+  const top = saiCatArrMes.slice(0,8);
   if(!top.length){
     chartEmptyState('boxMensal', 'Nenhuma saída registrada neste mês.');
   } else {
