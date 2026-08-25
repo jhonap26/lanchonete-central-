@@ -360,6 +360,11 @@
     body{ background:#fff; }
   }
 
+  /* Elementos exclusivos do shell mobile (Painel Mobile): escondidos por padrão;
+     só ficam visíveis dentro do @media(max-width:800px) abaixo. IDs/classes novos,
+     nunca usados por nenhum elemento do layout desktop. */
+  #mHeader, #mBottomNav, #mFab, #mSheetBackdrop, #mSheet{ display:none; }
+
   @media(max-width:800px){
     .shell{ flex-direction:column; }
     .sidebar{ width:100%; flex-direction:row; align-items:center; padding:10px 12px; overflow-x:auto; position:sticky; top:0; height:auto; z-index:20; }
@@ -371,6 +376,151 @@
     .content{ padding:0 16px 50px; }
     .topbar{ padding:16px; }
     .hero-card .stat-value{ font-size:30px; }
+
+    /* ===== Redesign mobile (Painel Mobile) — só existe dentro deste media query.
+       Nenhuma regra acima desta marca foi alterada. ===== */
+    .sidebar, .topbar{ display:none !important; }
+    .content{ padding:2px 16px 118px; }
+    .toast{ left:50%; right:auto; bottom:92px; transform:translate(-50%,12px); }
+    .toast.show{ transform:translate(-50%,0); }
+
+    #mHeader{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:16px 18px 12px; background:var(--bg); position:sticky; top:0; z-index:15;
+    }
+    #mHeader .eyebrow{ font-size:9.5px; letter-spacing:2px; text-transform:uppercase; font-weight:800; color:var(--brand-dark); }
+    #mHeader h2{ font-family:'Anton',Impact,sans-serif; font-weight:400; font-size:21px; letter-spacing:.3px; margin:3px 0 0; line-height:1.1; color:var(--ink); }
+    #mHeader .sub{ font-size:11.5px; color:var(--muted); margin-top:3px; }
+    #mHeaderEye{
+      width:40px; height:40px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface);
+      cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;
+      box-shadow:var(--shadow-sm);
+    }
+    #mHeaderEye:active{ transform:scale(.92); }
+
+    #mBottomNav{
+      display:flex; background:var(--side-bg); border-top:1px solid var(--side-border);
+      padding:8px 6px 14px; flex-shrink:0; position:fixed; left:0; right:0; bottom:0; z-index:40;
+    }
+    #mBottomNav button{
+      flex:1; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center;
+      gap:4px; padding:6px 2px; color:var(--side-text); font-family:'Inter',sans-serif;
+    }
+    #mBottomNav button:active{ transform:scale(.93); }
+    #mBottomNav button.active{ color:var(--brand); }
+    #mBottomNav button svg{ width:22px; height:22px; }
+    #mBottomNav button span{ font-size:9.5px; font-weight:700; letter-spacing:.2px; }
+
+    #mFab{
+      position:fixed; right:16px; bottom:86px; width:58px; height:58px; border-radius:50%; border:none;
+      background:linear-gradient(135deg,var(--brand),var(--brand-dark)); color:#2A1B00; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; box-shadow:0 10px 24px rgba(198,127,30,.45); z-index:35;
+    }
+    #mFab:active{ transform:scale(.92); }
+
+    #mSheetBackdrop{
+      position:fixed; inset:0; background:rgba(15,20,15,.5); backdrop-filter:blur(2px); z-index:44;
+    }
+
+    #formPanel{
+      position:fixed; left:0; right:0; bottom:0; top:auto; z-index:45; margin:0;
+      border-radius:22px 22px 0 0; max-height:86%; overflow-y:auto; padding:8px 20px 30px;
+      box-shadow:0 -18px 45px rgba(20,30,20,.25); animation:mSheetUp .28s cubic-bezier(.32,.72,.33,1);
+    }
+    #formPanel .panel-head{ padding-top:8px; }
+    @keyframes mSheetUp{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+
+    #mSheet{
+      position:fixed; left:0; right:0; bottom:0; z-index:45; background:var(--surface);
+      border-radius:22px 22px 0 0; max-height:86%; overflow-y:auto; padding:8px 20px 30px;
+      box-shadow:0 -18px 45px rgba(20,30,20,.25); animation:mSheetUp .28s cubic-bezier(.32,.72,.33,1);
+    }
+    #mSheet .m-sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    #mSheet .m-sheet-head h3{ font-family:'Anton',Impact,sans-serif; font-weight:400; font-size:19px; letter-spacing:.3px; margin:0; color:var(--ink); }
+    #mSheet .m-sheet-close{
+      width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2); cursor:pointer;
+      color:var(--ink-soft); font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    }
+    #mSheet .m-sheet-grip{ width:40px; height:4.5px; border-radius:3px; background:var(--border-strong); margin:6px auto 14px; }
+
+    /* Cards/painéis mobile genéricos */
+    .m-card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 16px; margin-bottom:14px; }
+    .m-card-title{ font-size:14px; font-weight:700; margin-bottom:14px; color:var(--ink); }
+    .m-hero{
+      background:linear-gradient(135deg,#1D2A22,#16231D); border-radius:20px; padding:22px 22px 20px; color:#fff;
+      box-shadow:0 14px 30px rgba(20,30,20,.18); position:relative; overflow:hidden; margin-bottom:14px;
+    }
+    .m-hero-label{ font-size:11px; letter-spacing:1.2px; color:#9FB0A4; font-weight:700; text-transform:uppercase; }
+    .m-hero-value{ font-family:'Space Mono',monospace; font-size:34px; font-weight:700; margin-top:8px; letter-spacing:-1px; }
+    .m-hero-sub{ font-size:12px; color:#8FA097; margin-top:6px; }
+    .m-stat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+    .m-stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 11px; }
+    .m-stat-card .lbl{ display:flex; align-items:center; gap:6px; font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .m-stat-card .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .m-stat-card .val{ font-family:'Space Mono',monospace; font-size:13.5px; font-weight:700; margin-top:8px; white-space:nowrap; }
+    .m-bar-row{ margin-bottom:12px; }
+    .m-bar-row .top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:5px; }
+    .m-bar-row .nome{ font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+    .m-bar-row .val{ font-family:'Space Mono',monospace; font-size:12px; font-weight:700; }
+    .m-bar-track{ height:8px; border-radius:6px; background:var(--surface-2); overflow:hidden; }
+    .m-bar-fill{ height:100%; border-radius:6px; }
+    .m-vbars{ display:flex; align-items:flex-end; gap:5px; height:132px; margin-top:16px; }
+    .m-vbars.scroll{ overflow-x:auto; }
+    .m-vbar-col{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; cursor:pointer; }
+    .m-vbar-col .bars{ display:flex; align-items:flex-end; gap:2px; height:110px; }
+    .m-vbar-col .b{ flex:1; border-radius:3px 3px 0 0; }
+    .m-vbar-col .lbl{ font-size:8.5px; color:var(--muted); text-align:center; margin-top:6px; font-weight:600; }
+    .m-seg{ display:flex; background:var(--surface-2); border-radius:10px; padding:3px; gap:3px; }
+    .m-seg button{ border:none; cursor:pointer; padding:6px 11px; border-radius:8px; font-family:'Inter',sans-serif; font-weight:700; font-size:11px; background:transparent; color:var(--muted); }
+    .m-seg button.active{ background:#fff; color:var(--ink); box-shadow:0 1px 4px rgba(20,30,20,.12); }
+    .m-chip-row{ display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
+    .m-chip-row::-webkit-scrollbar{ display:none; }
+    .m-chip{ border:1.5px solid var(--border); background:#fff; color:var(--ink-soft); cursor:pointer; padding:9px 14px; border-radius:22px; font-family:'Inter',sans-serif; font-weight:700; font-size:12px; white-space:nowrap; flex-shrink:0; }
+    .m-chip.active{ border-color:var(--brand); background:var(--brand-soft); color:var(--brand-dark); }
+    .m-search-row{ display:flex; gap:10px; margin-bottom:14px; }
+    .m-search-wrap{ flex:1; position:relative; }
+    .m-search-wrap svg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); }
+    .m-search-wrap input{ width:100%; box-sizing:border-box; padding:12px 14px 12px 38px; border:1.5px solid var(--border); border-radius:14px; background:#fff; font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); outline:none; }
+    .m-filter-btn{ position:relative; width:46px; height:46px; border-radius:14px; border:1.5px solid var(--border); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0; }
+    .m-filter-badge{ position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; border-radius:9px; background:var(--brand); color:#2A1B00; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px; }
+    .m-group-head{ display:flex; justify-content:space-between; align-items:baseline; padding:0 4px 8px; }
+    .m-group-head .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); font-weight:800; }
+    .m-group-head .val{ font-family:'Space Mono',monospace; font-size:11.5px; font-weight:700; }
+    .m-group{ background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-sm); margin-bottom:14px; }
+    .m-row-wrap{ position:relative; overflow:hidden; border-bottom:1px solid var(--surface-2); }
+    .m-row-wrap:last-child{ border-bottom:none; }
+    .m-row-actions{ position:absolute; top:0; right:0; bottom:0; display:flex; }
+    .m-row-actions button{ width:68px; border:none; color:#fff; font-size:11px; font-weight:800; cursor:pointer; font-family:'Inter',sans-serif; }
+    .m-row-actions .edit{ background:var(--blue); }
+    .m-row-actions .del{ background:var(--red); }
+    .m-row{ position:relative; display:flex; align-items:center; gap:12px; padding:13px 14px; background:var(--surface); touch-action:pan-y; user-select:none; transition:transform .22s ease; }
+    .m-row .ico{ width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .m-row .mid{ flex:1; min-width:0; }
+    .m-row .titulo{ font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink); }
+    .m-row .sub{ font-size:11.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .m-row .right{ text-align:right; flex-shrink:0; }
+    .m-row .valor{ font-family:'Space Mono',monospace; font-size:13.5px; font-weight:700; }
+    .m-row .forma{ font-size:10px; color:var(--muted); margin-top:2px; }
+    .m-swipe-hint{ text-align:center; font-size:11px; color:var(--muted); padding:2px 0 6px; }
+    .m-cad-row{ display:flex; align-items:center; gap:12px; padding:13px 14px; border-bottom:1px solid var(--surface-2); }
+    .m-cad-row:last-child{ border-bottom:none; }
+    .m-cad-ini{ width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+    .m-add-btn{ width:100%; padding:14px; border-radius:14px; border:1.5px dashed var(--border-strong); background:#fff; cursor:pointer; font-family:'Inter',sans-serif; font-weight:800; font-size:13.5px; color:var(--brand-dark); }
+    .m-field{ margin-bottom:16px; }
+    .m-field .lbl{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+    .m-field input, .m-field select{ width:100%; box-sizing:border-box; padding:12px 14px; border:1.5px solid var(--border-strong); border-radius:13px; font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); outline:none; background:#fff; }
+    .m-primary-btn{ width:100%; padding:15px; border-radius:15px; border:none; background:var(--brand); color:#2A1B00; cursor:pointer; font-family:'Inter',sans-serif; font-weight:800; font-size:14.5px; box-shadow:0 4px 14px rgba(232,163,61,.4); }
+    .m-outline-btn{ padding:14px; border-radius:13px; border:1.5px solid var(--border-strong); background:#fff; color:var(--ink); cursor:pointer; font-family:'Inter',sans-serif; font-weight:700; font-size:13.5px; }
+    .m-empty{ text-align:center; color:var(--muted); padding:40px 20px; }
+    .m-empty .t{ font-size:14px; font-weight:700; color:var(--ink-soft); }
+    .m-empty .s{ font-size:12.5px; margin-top:6px; }
+    .m-det-head{ display:flex; align-items:center; gap:14px; background:var(--surface-2); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:16px; }
+    .m-det-rows{ border:1px solid var(--border); border-radius:16px; padding:6px 16px; margin-bottom:16px; }
+    .m-det-row{ display:flex; align-items:baseline; gap:8px; padding:10px 0; border-bottom:1px solid var(--surface-2); }
+    .m-det-row:last-child{ border-bottom:none; }
+    .m-det-row .lbl{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); white-space:nowrap; }
+    .m-det-row .dots{ flex:1; border-bottom:1.5px dotted var(--border); margin-bottom:4px; }
+    .m-det-row .val{ font-size:13px; font-weight:700; text-align:right; }
   }
 </style>
 </head>
@@ -385,6 +535,20 @@
 
 <!-- ================= APP ================= -->
 <div id="app">
+  <!-- ============= Shell mobile (Painel Mobile) =============
+       Só aparece dentro de @media(max-width:800px). Fica ANTES de .shell no
+       DOM para que #mHeader (position:sticky) fique no topo do fluxo. -->
+  <div id="mHeader">
+    <div style="min-width:0;">
+      <div class="eyebrow">Lanchonete Central</div>
+      <h2 id="mHeaderTitle"></h2>
+      <div class="sub" id="mHeaderSub"></div>
+    </div>
+    <button id="mHeaderEye" title="Ocultar valores">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path id="mHeaderEyeIcon" d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 14.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6z"></path></svg>
+    </button>
+  </div>
+
   <div class="shell">
     <nav class="sidebar">
       <div class="brand">
@@ -439,6 +603,22 @@
         <!-- views injected here -->
       </div>
     </div>
+  </div>
+
+  <button id="mFab" title="Novo lançamento">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+  </button>
+
+  <nav id="mBottomNav"></nav>
+
+  <div id="mSheetBackdrop" style="display:none;"></div>
+  <div id="mSheet" style="display:none;">
+    <div class="m-sheet-grip"></div>
+    <div class="m-sheet-head">
+      <h3 id="mSheetTitle"></h3>
+      <button class="m-sheet-close" id="mSheetClose">✕</button>
+    </div>
+    <div id="mSheetBody"></div>
   </div>
 </div>
 
@@ -861,6 +1041,7 @@ async function bootApp(){
   ensureChartLib().catch(()=>{ /* falha silenciosa aqui; cada gráfico trata o próprio erro na hora de renderizar */ });
   await loadAllData();
   initNav();
+  initMobileShell();
   renderTopbarDate();
   navigateTo('dashboard');
 }
@@ -949,6 +1130,12 @@ function renderRelatorios(){
   const mes = state.relMes !== undefined ? state.relMes : new Date().getMonth();
   state.relMes = mes;
   const tipo = state.relTipo || 'todos';
+
+  if(isMobileViewport()){
+    document.getElementById('content').innerHTML = renderRelatoriosMobileHTML({ ano, anos, mes, tipo });
+    wireRelatoriosMobileEvents();
+    return;
+  }
 
   document.getElementById('content').innerHTML = `
     <div class="panel">
@@ -1078,6 +1265,802 @@ function exportarCSV(){
   toastSuccess('Relatório exportado com sucesso.');
 }
 
+/* ================= SHELL MOBILE (redesign "Painel Mobile") =================
+   Tudo neste bloco é aditivo: só entra em ação quando isMobileViewport() é
+   verdadeiro, e só cria/lê elementos exclusivos do mobile (#mHeader,
+   #mBottomNav, #mFab, #mSheet...) ou reaproveita funções de negócio já
+   existentes (abrirFormLanc, atualizarListaLanc, persistX, exportarCSV...)
+   chamando-as sem alterá-las. Nenhum cálculo financeiro é duplicado aqui. */
+
+function isMobileViewport(){
+  return window.matchMedia('(max-width:800px)').matches;
+}
+
+let mobileHideValues = false;
+function mMoney(n){ return mobileHideValues ? 'R$ ••••' : formatBRL(n); }
+
+const EYE_OPEN_D = 'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 14.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6z';
+const EYE_CLOSED_D = 'M3 3l18 18M10.5 10.7a2.3 2.3 0 0 0 3 3M7.4 7.5C4.9 8.9 3 12 3 12s3.5 6 9 6c1.6 0 3-.4 4.2-1M10 6.2A9 9 0 0 1 12 6c5.5 0 9 6 9 6s-.9 1.5-2.4 3';
+
+const M_NAV_TABS = [
+  ['dashboard','Fluxo','M4 20V10M11 20V4M18 20v-7'],
+  ['mensal','Mensal','M3.5 4.5h17v16h-17zM3.5 9.5h17M8 3v3M16 3v3'],
+  ['lancamentos','Lançar','M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21zM9 8h6M9 12h4'],
+  ['cadastros','Cadastros','M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 20a7 7 0 0 1 14 0'],
+  ['relatorios','Relatórios','M12 4v11M7.5 11.5 12 16l4.5-4.5M4 19.5h16']
+];
+const M_VIEW_TITLES = {
+  dashboard: { t:'Fluxo Anual', s: () => 'Ano de ' + (state.dashAno || new Date().getFullYear()) },
+  mensal: { t:'Entradas e Saídas', s: () => (typeof MESES!=='undefined' && state.mensalMes!=null) ? MESES[state.mensalMes]+' de '+state.mensalAno : '' },
+  lancamentos: { t:'Lançamentos', s: () => 'Hoje: ' + new Date().toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'}) },
+  cadastros: { t:'Cadastros', s: () => 'Fornecedores, clientes, contas' },
+  relatorios: { t:'Relatórios', s: () => 'Exportar e imprimir' }
+};
+
+function atualizarMHeader(view){
+  const def = M_VIEW_TITLES[view] || { t:'', s:()=>'' };
+  document.getElementById('mHeaderTitle').textContent = def.t;
+  document.getElementById('mHeaderSub').textContent = def.s();
+  document.querySelectorAll('#mBottomNav button').forEach(b=> b.classList.toggle('active', b.dataset.mview===view));
+}
+
+function showMBackdrop(){ document.getElementById('mSheetBackdrop').style.display = 'block'; }
+function hideMBackdrop(){ document.getElementById('mSheetBackdrop').style.display = 'none'; }
+
+function openMSheet(title, bodyHTML){
+  document.getElementById('mSheetTitle').textContent = title;
+  document.getElementById('mSheetBody').innerHTML = bodyHTML;
+  document.getElementById('mSheet').style.display = 'block';
+  showMBackdrop();
+}
+function closeMSheet(){
+  document.getElementById('mSheet').style.display = 'none';
+  hideMBackdrop();
+}
+
+function abrirNovoLancamentoMobile(){
+  const ir = ()=>{ abrirFormLanc(); showMBackdrop(); };
+  if(state.currentView !== 'lancamentos'){ navigateTo('lancamentos'); }
+  ir();
+}
+
+function initMobileShell(){
+  document.getElementById('mBottomNav').innerHTML = M_NAV_TABS.map(([view,label,d])=>`
+    <button data-mview="${view}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"></path></svg>
+      <span>${label}</span>
+    </button>`).join('');
+  document.querySelectorAll('#mBottomNav button').forEach(btn=>{
+    btn.addEventListener('click', ()=> navigateTo(btn.dataset.mview));
+  });
+
+  document.getElementById('mHeaderEye').addEventListener('click', ()=>{
+    mobileHideValues = !mobileHideValues;
+    document.getElementById('mHeaderEyeIcon').setAttribute('d', mobileHideValues ? EYE_CLOSED_D : EYE_OPEN_D);
+    navigateTo(state.currentView);
+  });
+
+  document.getElementById('mFab').addEventListener('click', abrirNovoLancamentoMobile);
+
+  document.getElementById('mSheetBackdrop').addEventListener('click', ()=>{
+    const fp = document.getElementById('formPanel');
+    if(fp && fp.style.display==='block') fecharFormLanc();
+    closeMSheet();
+  });
+  document.getElementById('mSheetClose').addEventListener('click', closeMSheet);
+
+  // Delegação: some o backdrop do sheet do formulário quando ele é fechado pelos
+  // próprios botões do formPanel (que são recriados a cada render de Lançamentos).
+  document.getElementById('content').addEventListener('click', (ev)=>{
+    if(ev.target.closest('#btnFecharForm') || ev.target.closest('#btnCancelarForm')) hideMBackdrop();
+  });
+
+  window.matchMedia('(max-width:800px)').addEventListener('change', ()=>{
+    closeMSheet();
+    hideMBackdrop();
+    if(state.currentView) navigateTo(state.currentView);
+  });
+}
+
+/* Linha de barra horizontal reaproveitada pelos mobiles de Dashboard e Mensal
+   (mesmo visual do painel "Vendas por categoria" do design). */
+function mBarRowHTML(nome, valorFormatado, pct, cor){
+  return `
+    <div class="m-bar-row">
+      <div class="top"><span class="nome">${nome}</span><span class="val" style="color:${cor};">${valorFormatado}</span></div>
+      <div class="m-bar-track"><div class="m-bar-fill" style="background:${cor}; width:${Math.max(0,Math.min(100,pct))}%;"></div></div>
+    </div>`;
+}
+
+/* ================= VIEW MOBILE: DASHBOARD ================= */
+function renderDashboardMobileHTML({ ano, saldo, total, resumo, totalEntAno, totalSaiAno, lucroLiquido }){
+  const maxM = Math.max(1, ...resumo.totalEnt, ...resumo.totalSai);
+  const monthlyBars = resumo.totalEnt.map((v,i)=>{
+    const inH = Math.round(v/maxM*100);
+    const outH = Math.round(resumo.totalSai[i]/maxM*100);
+    return `<div class="m-vbar-col" data-mesidx="${i}">
+      <div class="bars"><div class="b" style="background:var(--green); height:${inH}%;"></div><div class="b" style="background:var(--red); opacity:.8; height:${outH}%;"></div></div>
+      <div class="lbl">${MESES_ABBR[i]}</div>
+    </div>`;
+  }).join('');
+
+  let vendasCats = Object.entries(resumo.entPorCat)
+    .map(([cat,arr])=>({ cat, soma: arr.reduce((a,b)=>a+b,0) }))
+    .filter(c=>c.soma>0);
+  const somenteVendas = vendasCats.filter(c=>c.cat.startsWith('Vendas'));
+  if(somenteVendas.length) vendasCats = somenteVendas;
+  vendasCats.sort((a,b)=> b.soma-a.soma);
+  const maxVenda = vendasCats.length ? vendasCats[0].soma : 1;
+  const vendasCatHTML = vendasCats.length
+    ? vendasCats.map(c=> mBarRowHTML(c.cat, mMoney(c.soma), c.soma/maxVenda*100, 'var(--brand-dark)')).join('')
+    : `<div class="m-empty"><div class="t">Nenhuma venda registrada</div><div class="s">neste ano</div></div>`;
+
+  const saiCats = Object.entries(resumo.saiPorCat)
+    .map(([cat,arr])=>({ cat, soma: arr.reduce((a,b)=>a+b,0) }))
+    .filter(c=>c.soma>0)
+    .sort((a,b)=> b.soma-a.soma);
+  const resumoSaiHTML = saiCats.length
+    ? saiCats.map(c=> `<div class="m-bar-row" style="margin-bottom:0;"><div class="top" style="margin-bottom:0;"><span class="nome">${c.cat}</span><span class="val" style="color:var(--red);">${mMoney(c.soma)}</span></div></div>`).join('')
+    : `<div class="m-empty"><div class="t">Nenhuma saída registrada</div><div class="s">neste ano</div></div>`;
+
+  return `
+    <div class="m-hero">
+      <div class="m-hero-label">Montante total</div>
+      <div class="m-hero-value">${mMoney(total)}</div>
+      <div class="m-hero-sub">Espécie + bancos · ${ano}</div>
+    </div>
+
+    <div class="m-stat-grid">
+      <div class="m-stat-card"><div class="lbl"><span class="dot" style="background:var(--green);"></span>Faturamento</div><div class="val" style="color:var(--green);">${mMoney(totalEntAno)}</div></div>
+      <div class="m-stat-card"><div class="lbl"><span class="dot" style="background:var(--red);"></span>Despesas</div><div class="val" style="color:var(--red);">${mMoney(totalSaiAno)}</div></div>
+      <div class="m-stat-card"><div class="lbl"><span class="dot" style="background:var(--blue);"></span>Lucro líquido</div><div class="val" style="color:var(--blue);">${mMoney(lucroLiquido)}</div></div>
+    </div>
+
+    <div class="m-card-title" style="margin:4px 2px 10px;">Saldos por conta</div>
+    <div class="m-stat-grid">
+      ${state.contas.map(c=>{
+        const cor = ACCOUNT_COLORS[c.cor] || ACCOUNT_COLORS.mustard;
+        return `<div class="m-stat-card"><div class="lbl">${c.nome}</div><div class="val" style="color:${cor.fg};">${mMoney(saldo[c.id])}</div></div>`;
+      }).join('')}
+    </div>
+
+    <div class="m-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <div class="m-card-title" style="margin:0;">Entradas × Saídas por mês</div>
+        <div style="display:flex; gap:12px; font-size:10.5px; font-weight:600; color:var(--muted);">
+          <span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:3px;background:var(--green);"></span>Entradas</span>
+          <span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:3px;background:var(--red);"></span>Saídas</span>
+        </div>
+      </div>
+      <div class="m-vbars">${monthlyBars}</div>
+      <div class="mini-note" style="margin-top:12px;">Toque em um mês para abrir a visão mensal</div>
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Vendas por categoria</div>
+      ${vendasCatHTML}
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Resumo de saídas por categoria</div>
+      ${resumoSaiHTML}
+      <div style="display:flex; align-items:baseline; gap:8px; padding-top:12px; border-top:1.5px solid var(--border-strong); margin-top:12px;">
+        <span style="font-size:13.5px; font-weight:800;">Despesas totais</span><span style="flex:1;"></span>
+        <span style="font-family:'Space Mono',monospace; font-size:15px; font-weight:700; color:var(--red);">${mMoney(totalSaiAno)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function wireDashboardMobileEvents({ ano }){
+  atualizarMHeader('dashboard');
+  document.getElementById('mHeaderSub').textContent = 'Ano de ' + ano;
+  document.querySelectorAll('.m-vbar-col').forEach(col=>{
+    col.addEventListener('click', ()=>{
+      state.mensalMes = Number(col.dataset.mesidx);
+      state.mensalAno = ano;
+      navigateTo('mensal');
+    });
+  });
+}
+
+/* ================= VIEW MOBILE: MENSAL ================= */
+function renderMensalMobileHTML({ ano, mes, totalEntMes, totalSaiMes, filtroVD, filtroVDAtivo, totalVendasPeriodo, labelVendasPeriodo,
+  entCatArr, saiCatArr, totalEntCat, totalSaiCat, periodoCatLabel, vendasDiaArr, totalVendasMes, saiCatArrMes, despesaPctArr }){
+
+  const maxDia = Math.max(1, ...vendasDiaArr);
+  const diaBars = vendasDiaArr.map((v,i)=>`
+    <div class="m-vbar-col" style="flex:0 0 22px;">
+      <div class="bars" style="height:90px;"><div class="b" style="background:${(i+1)===new Date().getDate() && mes===new Date().getMonth() && ano===new Date().getFullYear() ? 'var(--brand)':'var(--brand-dark)'}; opacity:.85; height:${Math.round(v/maxDia*100)}%;"></div></div>
+      <div class="lbl">${i+1}</div>
+    </div>`).join('');
+
+  const entCatHTML = entCatArr.length
+    ? entCatArr.map(([cat,v])=> mBarRowHTML(cat, mMoney(v), totalEntCat>0? v/totalEntCat*100:0, 'var(--green)')).join('')
+    : `<div class="m-empty"><div class="t">Nenhuma entrada</div><div class="s">${filtroVDAtivo?'neste período':'neste mês'}</div></div>`;
+  const saiCatHTML = saiCatArr.length
+    ? saiCatArr.map(([cat,v])=> mBarRowHTML(cat, mMoney(v), totalSaiCat>0? v/totalSaiCat*100:0, 'var(--red)')).join('')
+    : `<div class="m-empty"><div class="t">Nenhuma saída</div><div class="s">${filtroVDAtivo?'neste período':'neste mês'}</div></div>`;
+  const despesaPctHTML = despesaPctArr.length
+    ? despesaPctArr.map(d=> mBarRowHTML(d.cat, d.pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%', d.pct, 'var(--red)')).join('')
+    : `<div class="m-empty"><div class="t">Sem dados suficientes</div><div class="s">para calcular o percentual</div></div>`;
+
+  const top = saiCatArrMes.slice(0,8);
+  const maioresHTML = top.length
+    ? top.map(([cat,v],i)=>`
+      <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--surface-2);">
+        <div style="width:30px;height:30px;border-radius:10px;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat}</div></div>
+        <div style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">${mMoney(v)}</div>
+      </div>`).join('')
+    : `<div class="m-empty"><div class="t">Sem saídas lançadas</div><div class="s">neste mês</div></div>`;
+
+  return `
+    <div class="m-card" style="display:flex; align-items:center; justify-content:space-between; padding:8px;">
+      <button class="m-outline-btn" id="mMesPrev" style="padding:10px 16px;">‹</button>
+      <div style="text-align:center;">
+        <div style="font-size:15px; font-weight:800;">${MESES[mes]}</div>
+        <div style="font-size:10.5px; color:var(--muted); font-weight:600;">${ano}</div>
+      </div>
+      <button class="m-outline-btn" id="mMesNext" style="padding:10px 16px;">›</button>
+    </div>
+
+    <div class="m-stat-grid">
+      <div class="m-stat-card"><div class="lbl">Entradas</div><div class="val" style="color:var(--green);">${mMoney(totalEntMes)}</div></div>
+      <div class="m-stat-card"><div class="lbl">Saídas</div><div class="val" style="color:var(--red);">${mMoney(totalSaiMes)}</div></div>
+      <div class="m-stat-card"><div class="lbl">Saldo</div><div class="val" style="color:var(--blue);">${mMoney(totalEntMes-totalSaiMes)}</div></div>
+    </div>
+
+    <div class="m-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+        <div class="m-card-title" style="margin:0;">${labelVendasPeriodo}</div>
+        <button class="m-outline-btn" id="mBtnFiltroVendas" style="padding:8px 12px; font-size:12px;">Filtrar período</button>
+      </div>
+      <div style="font-family:'Space Mono',monospace; font-size:28px; font-weight:700; color:var(--green);">${mMoney(totalVendasPeriodo)}</div>
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Vendas por dia</div>
+      <div class="m-vbars scroll" style="height:110px;">${diaBars}</div>
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Entradas por categoria${periodoCatLabel?` <span class="mini-note" style="display:inline;">· ${periodoCatLabel}</span>`:''}</div>
+      ${entCatHTML}
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Saídas por categoria${periodoCatLabel?` <span class="mini-note" style="display:inline;">· ${periodoCatLabel}</span>`:''}</div>
+      ${saiCatHTML}
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Despesas em % do faturamento</div>
+      ${despesaPctHTML}
+    </div>
+
+    <div class="m-card">
+      <div class="m-card-title">Maiores saídas do mês</div>
+      ${maioresHTML}
+    </div>
+  `;
+}
+
+function wireMensalMobileEvents({ ano, mes }){
+  atualizarMHeader('mensal');
+  document.getElementById('mHeaderSub').textContent = MESES[mes] + ' de ' + ano;
+
+  document.getElementById('mMesPrev').addEventListener('click', ()=>{
+    let m = state.mensalMes-1, a = state.mensalAno;
+    if(m<0){ m=11; a--; }
+    state.mensalMes = m; state.mensalAno = a;
+    renderMensal();
+  });
+  document.getElementById('mMesNext').addEventListener('click', ()=>{
+    let m = state.mensalMes+1, a = state.mensalAno;
+    if(m>11){ m=0; a++; }
+    state.mensalMes = m; state.mensalAno = a;
+    renderMensal();
+  });
+
+  document.getElementById('mBtnFiltroVendas').addEventListener('click', ()=>{
+    const fVD = state.filtroVendasDia;
+    openMSheet('Filtrar vendas do dia', `
+      <div class="m-field"><div class="lbl">Data inicial</div><input type="date" id="mfVendasInicio" value="${fVD.inicio||''}"></div>
+      <div class="m-field"><div class="lbl">Data final</div><input type="date" id="mfVendasFim" value="${fVD.fim||''}"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="m-outline-btn" id="mfVendasLimpar" style="flex:1;">Limpar</button>
+        <button class="m-primary-btn" id="mfVendasAplicar" style="flex:1;">Aplicar</button>
+      </div>
+    `);
+    document.getElementById('mfVendasAplicar').addEventListener('click', ()=>{
+      const inicio = document.getElementById('mfVendasInicio').value;
+      const fim = document.getElementById('mfVendasFim').value;
+      if(!inicio || !fim){ toast('Selecione a data inicial e a data final para aplicar o filtro.'); return; }
+      state.filtroVendasDia = inicio <= fim ? { inicio, fim } : { inicio: fim, fim: inicio };
+      closeMSheet();
+      renderMensal();
+    });
+    document.getElementById('mfVendasLimpar').addEventListener('click', ()=>{
+      state.filtroVendasDia = { inicio:'', fim:'' };
+      closeMSheet();
+      renderMensal();
+    });
+  });
+}
+
+/* ================= VIEW MOBILE: LANÇAMENTOS ================= */
+function mDateLabel(d){
+  const hoje = new Date().toISOString().slice(0,10);
+  const ontemDate = new Date(); ontemDate.setDate(ontemDate.getDate()-1);
+  const ontem = ontemDate.toISOString().slice(0,10);
+  if(d===hoje) return 'Hoje · '+formatDateBR(d);
+  if(d===ontem) return 'Ontem · '+formatDateBR(d);
+  return formatDateBR(d);
+}
+
+function lancRowHTML(e){
+  const isT = e.movimento==='transferencia';
+  const cor = e.movimento==='entrada' ? 'var(--green)' : (e.movimento==='saida' ? 'var(--red)' : 'var(--blue)');
+  const soft = e.movimento==='entrada' ? 'var(--green-soft)' : (e.movimento==='saida' ? 'var(--red-soft)' : 'var(--blue-soft)');
+  const sign = e.movimento==='entrada' ? '+ ' : (e.movimento==='saida' ? '− ' : '');
+  const iconD = e.movimento==='entrada' ? 'M7 17 17 7M8 7h9v9' : (e.movimento==='saida' ? 'M7 7l10 10M16 17H7V8' : 'M4 8h13l-3-3M20 16H7l3 3');
+  const sub = isT
+    ? `${contaNome(e.contaOrigem)} → ${contaNome(e.contaDestino)}`
+    : `${(e.fornecedor||e.cliente) ? (e.fornecedor||e.cliente)+' · ' : ''}${contaNome(e.conta)}`;
+  const titulo = e.descricao || e.categoria || '—';
+  const valor = mobileHideValues ? 'R$ ••••' : (sign+formatBRL(e.valor)).trim();
+  return `
+    <div class="m-row-wrap">
+      <div class="m-row-actions">
+        <button class="edit" data-edit-id="${e.id}">Editar</button>
+        <button class="del" data-del-id="${e.id}">Excluir</button>
+      </div>
+      <div class="m-row" data-rowid="${e.id}">
+        <div class="ico" style="background:${soft}; color:${cor};">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${iconD}"></path></svg>
+        </div>
+        <div class="mid">
+          <div class="titulo">${titulo}</div>
+          <div class="sub">${sub}</div>
+        </div>
+        <div class="right">
+          <div class="valor" style="color:${cor};">${valor}</div>
+          <div class="forma">${e.formaPagamento||''}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildLancGroupsHTML(){
+  const list = state.__filtroLancResult || [];
+  if(!list.length){
+    return `<div class="m-empty"><div class="t">Nenhum lançamento encontrado</div><div class="s">Ajuste a busca ou os filtros.</div></div>`;
+  }
+  const byDate = {};
+  list.forEach(e=>{ (byDate[e.data] = byDate[e.data]||[]).push(e); });
+  return Object.keys(byDate).sort().reverse().map(d=>{
+    const items = byDate[d];
+    const tot = items.reduce((a,e)=> a + (e.movimento==='entrada'?e.valor:(e.movimento==='saida'?-e.valor:0)), 0);
+    const totLabel = mobileHideValues ? 'R$ ••••' : (tot>=0?'+ ':'− ')+formatBRL(Math.abs(tot));
+    return `
+      <div class="m-group-head"><span class="lbl">${mDateLabel(d)}</span><span class="val" style="color:${tot>=0?'var(--green)':'var(--red)'};">${totLabel}</span></div>
+      <div class="m-group">${items.map(lancRowHTML).join('')}</div>`;
+  }).join('');
+}
+
+let mOpenSwipeId = null;
+let mSwipeDrag = null;
+function closeOpenSwipeRow(){
+  if(mOpenSwipeId){
+    const el = document.querySelector(`.m-row[data-rowid="${mOpenSwipeId}"]`);
+    if(el) el.style.transform = 'translateX(0px)';
+    mOpenSwipeId = null;
+  }
+}
+function attachSwipeRow(rowEl, id){
+  const onDown = (ev)=>{
+    mSwipeDrag = { id, sx: ev.clientX, base: mOpenSwipeId===id ? -136 : 0, moved:false, tx: mOpenSwipeId===id?-136:0 };
+    try{ rowEl.setPointerCapture(ev.pointerId); }catch(err){}
+  };
+  const onMove = (ev)=>{
+    const d = mSwipeDrag; if(!d || d.id!==id) return;
+    const dx = ev.clientX - d.sx;
+    if(Math.abs(dx)>6) d.moved = true;
+    if(!d.moved) return;
+    d.tx = Math.max(-136, Math.min(0, d.base+dx));
+    rowEl.style.transition = 'none';
+    rowEl.style.transform = `translateX(${d.tx}px)`;
+  };
+  const onUp = ()=>{
+    const d = mSwipeDrag; mSwipeDrag = null;
+    if(!d || d.id!==id) return;
+    rowEl.style.transition = 'transform .22s ease';
+    if(d.moved){
+      const open = d.tx < -60;
+      if(mOpenSwipeId && mOpenSwipeId!==id) closeOpenSwipeRow();
+      rowEl.style.transform = open ? 'translateX(-136px)' : 'translateX(0px)';
+      mOpenSwipeId = open ? id : null;
+      rowEl.dataset.justDragged = '1';
+      setTimeout(()=>{ rowEl.dataset.justDragged=''; }, 50);
+    }
+  };
+  rowEl.addEventListener('pointerdown', onDown);
+  rowEl.addEventListener('pointermove', onMove);
+  rowEl.addEventListener('pointerup', onUp);
+  rowEl.addEventListener('pointercancel', onUp);
+  rowEl.addEventListener('click', ()=>{
+    if(rowEl.dataset.justDragged) return;
+    if(mOpenSwipeId===id){ closeOpenSwipeRow(); return; }
+    abrirDetalhesLancamentoMobile(id);
+  });
+}
+
+function wireLancRows(){
+  document.querySelectorAll('.m-row').forEach(el=> attachSwipeRow(el, el.dataset.rowid));
+  document.querySelectorAll('[data-edit-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      closeOpenSwipeRow();
+      abrirFormLanc(btn.dataset.editId);
+      showMBackdrop();
+    });
+  });
+  document.querySelectorAll('[data-del-id]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      closeOpenSwipeRow();
+      await excluirLancamento(btn.dataset.delId);
+      if(isMobileViewport() && document.getElementById('mLancList')){
+        document.getElementById('mLancList').innerHTML = buildLancGroupsHTML();
+        wireLancRows();
+      }
+    });
+  });
+}
+
+function abrirDetalhesLancamentoMobile(id){
+  const e = state.entries.find(x=>x.id===id);
+  if(!e) return;
+  const isT = e.movimento==='transferencia';
+  const cor = e.movimento==='entrada' ? 'var(--green)' : (e.movimento==='saida' ? 'var(--red)' : 'var(--blue)');
+  const soft = e.movimento==='entrada' ? 'var(--green-soft)' : (e.movimento==='saida' ? 'var(--red-soft)' : 'var(--blue-soft)');
+  const sign = e.movimento==='entrada' ? '+ ' : (e.movimento==='saida' ? '− ' : '');
+  const iconD = e.movimento==='entrada' ? 'M7 17 17 7M8 7h9v9' : (e.movimento==='saida' ? 'M7 7l10 10M16 17H7V8' : 'M4 8h13l-3-3M20 16H7l3 3');
+  const rows = [
+    { label:'Movimento', val: e.movimento==='entrada'?'Entrada':(e.movimento==='saida'?'Saída':'Transferência') },
+    { label:'Categoria', val: e.categoria||'—' },
+    { label:'Data', val: formatDateBR(e.data) },
+    isT ? { label:'Contas', val: contaNome(e.contaOrigem)+' → '+contaNome(e.contaDestino) } : { label:'Conta', val: contaNome(e.conta) },
+    { label:'Pagamento', val: e.formaPagamento||'—' },
+  ];
+  if(e.fornecedor) rows.push({ label:'Fornecedor', val:e.fornecedor });
+  if(e.cliente) rows.push({ label:'Cliente', val:e.cliente });
+  const rowsHTML = rows.map(r=>`<div class="m-det-row"><span class="lbl">${r.label}</span><span class="dots"></span><span class="val">${r.val}</span></div>`).join('');
+  openMSheet('Detalhes do lançamento', `
+    <div class="m-det-head">
+      <div class="ico" style="width:44px;height:44px;border-radius:14px;background:${soft};color:${cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${iconD}"></path></svg>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:800;">${e.descricao||e.categoria}</div>
+        <div style="font-family:'Space Mono',monospace;font-size:19px;font-weight:700;margin-top:3px;color:${cor};">${mobileHideValues?'R$ ••••':(sign+formatBRL(e.valor)).trim()}</div>
+      </div>
+    </div>
+    <div class="m-det-rows">${rowsHTML}</div>
+    <button class="m-primary-btn" id="mDetEditar">Editar lançamento</button>
+  `);
+  document.getElementById('mDetEditar').addEventListener('click', ()=>{
+    closeMSheet();
+    abrirFormLanc(id);
+    showMBackdrop();
+  });
+}
+
+function abrirFiltrosLancamentoMobile(){
+  const f = state.filtroLanc;
+  const todasCats = state.categorias.entradas.concat(state.categorias.saidas);
+  openMSheet('Filtrar lançamentos', `
+    <div class="m-field">
+      <div class="lbl">Ver por</div>
+      <div class="m-seg" id="mfPeriodoSeg">
+        <button data-v="mes" class="${f.periodo==='mes'?'active':''}">Mês</button>
+        <button data-v="dia" class="${f.periodo==='dia'?'active':''}">Dia</button>
+        <button data-v="todos" class="${f.periodo==='todos'?'active':''}">Todos</button>
+      </div>
+    </div>
+    <div class="m-field" id="mfMesWrap" style="display:${f.periodo==='mes'?'block':'none'};">
+      <div class="lbl">Mês</div>
+      <select id="mfMes">${MESES.map((m,i)=>`<option value="${i}" ${i===f.mes?'selected':''}>${m}</option>`).join('')}</select>
+    </div>
+    <div class="m-field" id="mfDiaWrap" style="display:${f.periodo==='dia'?'block':'none'};">
+      <div class="lbl">Dia</div>
+      <input type="date" id="mfDia" value="${f.dia||''}">
+    </div>
+    <div class="m-field">
+      <div class="lbl">Movimento</div>
+      <div class="m-seg" id="mfMovSeg">
+        <button data-v="todos" class="${f.movimento==='todos'?'active':''}">Todos</button>
+        <button data-v="entrada" class="${f.movimento==='entrada'?'active':''}">Entradas</button>
+        <button data-v="saida" class="${f.movimento==='saida'?'active':''}">Saídas</button>
+      </div>
+    </div>
+    <div class="m-field">
+      <div class="lbl">Categoria</div>
+      <select id="mfCategoria">
+        <option value="todos" ${(!f.categoria||f.categoria==='todos')?'selected':''}>Todas</option>
+        ${todasCats.map(c=>`<option value="${c}" ${f.categoria===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="m-field">
+      <div class="lbl">Conta</div>
+      <select id="mfConta">
+        <option value="todos" ${(!f.conta||f.conta==='todos')?'selected':''}>Todas</option>
+        ${state.contas.map(c=>`<option value="${c.id}" ${f.conta===c.id?'selected':''}>${c.nome}</option>`).join('')}
+      </select>
+    </div>
+    <div class="m-field">
+      <div class="lbl">Fornecedor</div>
+      <select id="mfFornecedor">
+        <option value="todos" ${(!f.fornecedor||f.fornecedor==='todos')?'selected':''}>Todos</option>
+        ${state.fornecedores.map(x=>`<option value="${x.nome}" ${f.fornecedor===x.nome?'selected':''}>${x.nome}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="m-outline-btn" id="mfLimpar" style="flex:1;">Limpar</button>
+      <button class="m-primary-btn" id="mfAplicar" style="flex:1;">Aplicar</button>
+    </div>
+  `);
+
+  document.querySelectorAll('#mfPeriodoSeg button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#mfPeriodoSeg button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('mfMesWrap').style.display = btn.dataset.v==='mes' ? 'block':'none';
+      document.getElementById('mfDiaWrap').style.display = btn.dataset.v==='dia' ? 'block':'none';
+      state.filtroLanc.periodo = btn.dataset.v;
+    });
+  });
+  document.querySelectorAll('#mfMovSeg button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#mfMovSeg button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.filtroLanc.movimento = btn.dataset.v;
+    });
+  });
+  document.getElementById('mfAplicar').addEventListener('click', ()=>{
+    state.filtroLanc.mes = Number(document.getElementById('mfMes').value);
+    state.filtroLanc.dia = document.getElementById('mfDia').value;
+    state.filtroLanc.categoria = document.getElementById('mfCategoria').value;
+    state.filtroLanc.conta = document.getElementById('mfConta').value;
+    state.filtroLanc.fornecedor = document.getElementById('mfFornecedor').value;
+    closeMSheet();
+    renderLancamentos();
+  });
+  document.getElementById('mfLimpar').addEventListener('click', ()=>{
+    state.filtroLanc.movimento = 'todos';
+    state.filtroLanc.categoria = 'todos';
+    state.filtroLanc.conta = 'todos';
+    state.filtroLanc.fornecedor = 'todos';
+    closeMSheet();
+    renderLancamentos();
+  });
+}
+
+function renderLancamentosMobileHTML(){
+  const f = state.filtroLanc;
+  const filtroCount = (f.movimento&&f.movimento!=='todos'?1:0)+(f.categoria&&f.categoria!=='todos'?1:0)+(f.conta&&f.conta!=='todos'?1:0)+(f.fornecedor&&f.fornecedor!=='todos'?1:0);
+  return `
+    <div class="m-search-row">
+      <div class="m-search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input type="text" id="mBusca" placeholder="Buscar lançamento…" value="${f.busca||''}">
+      </div>
+      <button class="m-filter-btn" id="mBtnFiltros">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+        ${filtroCount>0?`<span class="m-filter-badge">${filtroCount}</span>`:''}
+      </button>
+    </div>
+    <div id="mLancList">${buildLancGroupsHTML()}</div>
+    <div class="m-swipe-hint">← Deslize um lançamento para editar ou excluir</div>
+  `;
+}
+
+function observeFormPanelCloseMobile(){
+  const panel = document.getElementById('formPanel');
+  if(!panel) return;
+  const obs = new MutationObserver(()=>{
+    if(panel.style.display==='none' && isMobileViewport() && state.currentView==='lancamentos'){
+      atualizarListaLanc();
+      const list = document.getElementById('mLancList');
+      if(list){ list.innerHTML = buildLancGroupsHTML(); wireLancRows(); }
+    }
+  });
+  obs.observe(panel, { attributes:true, attributeFilter:['style'] });
+}
+
+function wireLancamentosMobileEvents(){
+  atualizarMHeader('lancamentos');
+  document.getElementById('mHeaderSub').textContent = 'Hoje: ' + new Date().toLocaleDateString('pt-BR',{weekday:'long', day:'2-digit', month:'long'});
+
+  wireLancRows();
+  observeFormPanelCloseMobile();
+
+  document.getElementById('mBusca').addEventListener('input', (ev)=>{
+    state.filtroLanc.busca = ev.target.value;
+    atualizarListaLanc();
+    document.getElementById('mLancList').innerHTML = buildLancGroupsHTML();
+    wireLancRows();
+  });
+
+  document.getElementById('mBtnFiltros').addEventListener('click', abrirFiltrosLancamentoMobile);
+}
+
+/* ================= VIEW MOBILE: CADASTROS ================= */
+function mCadRowHTML(nome, sub, id, i, cor, valorText, canDelete){
+  const inis = ['#FBEDD3|#C67F1E','#E4EFF8|#3B7DB8','#E2F3E9|#2E8F5B','#ECE9FB|#7C6FD1'];
+  const bg = cor ? cor.bg : inis[i%4].split('|')[0];
+  const fg = cor ? cor.fg : inis[i%4].split('|')[1];
+  return `
+    <div class="m-cad-row">
+      <div class="m-cad-ini" style="background:${bg}; color:${fg};">${(nome[0]||'?').toUpperCase()}</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nome}</div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:2px;">${sub}</div>
+      </div>
+      ${valorText ? `<div style="font-family:'Space Mono',monospace; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:6px; white-space:nowrap;">${valorText}</div>` : ''}
+      ${canDelete ? `<button class="btn btn-ghost btn-sm" data-delcadm="${id}" style="color:var(--red); flex-shrink:0;" title="Remover">🗑</button>` : ''}
+    </div>`;
+}
+
+function renderCadContentMobile(sub){
+  const list = document.getElementById('mCadList');
+  const addBtn = document.getElementById('mBtnCadAdd');
+  const labels = { fornecedores:'fornecedor', clientes:'cliente', formas:'forma de pagamento', bancos:'conta' };
+  if(addBtn) addBtn.textContent = '+ Adicionar ' + labels[sub];
+
+  let rows = [];
+  if(sub==='fornecedores' || sub==='clientes'){
+    const arr = sub==='fornecedores' ? state.fornecedores : state.clientes;
+    rows = arr.map((c,i)=> mCadRowHTML(c.nome, c.contato || c.obs || '—', c.id, i, null, null, true));
+  } else if(sub==='formas'){
+    rows = state.formas.map((f,i)=> mCadRowHTML(f.nome, 'Forma de pagamento', f.id, i, null, null, true));
+  } else if(sub==='bancos'){
+    const saldo = saldosPorConta();
+    rows = state.contas.map((c,i)=>{
+      const cor = ACCOUNT_COLORS[c.cor] || ACCOUNT_COLORS.mustard;
+      return mCadRowHTML(c.nome, c.tipo==='especie' ? 'Dinheiro em caixa' : 'Conta bancária', c.id, i, cor, mMoney(saldo[c.id]), c.tipo!=='especie');
+    });
+  }
+
+  list.innerHTML = rows.length ? rows.join('') : `<div class="m-empty"><div class="t">Nada cadastrado ainda</div><div class="s">Toque em "Adicionar" para criar o primeiro.</div></div>`;
+
+  list.querySelectorAll('[data-delcadm]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.delcadm;
+      const ok = await confirmDialog('Remover cadastro?', 'Lançamentos que já usam esse nome não serão apagados, apenas o cadastro.');
+      if(!ok) return;
+      if(sub==='fornecedores'){ state.fornecedores = state.fornecedores.filter(x=>x.id!==id); await persistFornecedores(); }
+      else if(sub==='clientes'){ state.clientes = state.clientes.filter(x=>x.id!==id); await persistClientes(); }
+      else if(sub==='formas'){ state.formas = state.formas.filter(x=>x.id!==id); await persistFormas(); }
+      else if(sub==='bancos'){ state.contas = state.contas.filter(x=>x.id!==id); await persistContas(); }
+      toast('Removido.');
+      renderCadContent();
+    });
+  });
+}
+
+function abrirCadAddSheetMobile(){
+  const sub = state.cadastroSub;
+  const titles = { fornecedores:'Novo fornecedor', clientes:'Novo cliente', formas:'Nova forma de pagamento', bancos:'Nova conta/banco' };
+
+  let bodyHTML = `<div class="m-field"><div class="lbl">Nome</div><input type="text" id="mCadNome" placeholder="${sub==='bancos' ? 'Ex: Banco C, Nubank...' : 'Nome'}"></div>`;
+  if(sub==='fornecedores' || sub==='clientes'){
+    bodyHTML += `<div class="m-field"><div class="lbl">Contato</div><input type="text" id="mCadContato" placeholder="Telefone / e-mail (opcional)"></div>`;
+  } else if(sub==='bancos'){
+    bodyHTML += `<div class="m-field"><div class="lbl">Cor de identificação</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        ${Object.keys(ACCOUNT_COLORS).map(k=>`
+          <label style="cursor:pointer;">
+            <input type="radio" name="mCadCor" value="${k}" ${k==='purple'?'checked':''} style="display:none;">
+            <span class="mCadSwatch" data-k="${k}" style="display:block; width:30px; height:30px; border-radius:50%; background:${ACCOUNT_COLORS[k].dot}; border:2px solid ${k==='purple'?'var(--ink)':'transparent'};"></span>
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }
+  bodyHTML += `<button class="m-primary-btn" id="mCadSalvar" style="margin-top:6px;">Salvar</button>`;
+
+  openMSheet(titles[sub] || 'Novo cadastro', bodyHTML);
+
+  if(sub==='bancos'){
+    document.querySelectorAll('input[name="mCadCor"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        document.querySelectorAll('.mCadSwatch').forEach(s=> s.style.border = '2px solid transparent');
+        document.querySelector(`.mCadSwatch[data-k="${r.value}"]`).style.border = '2px solid var(--ink)';
+      });
+    });
+  }
+
+  document.getElementById('mCadSalvar').addEventListener('click', async ()=>{
+    const nome = document.getElementById('mCadNome').value.trim();
+    if(!nome){ toast('Informe um nome.'); return; }
+    if(sub==='fornecedores'){
+      state.fornecedores.push({ id: uid(), nome, contato: document.getElementById('mCadContato').value.trim(), obs:'' });
+      await persistFornecedores();
+    } else if(sub==='clientes'){
+      state.clientes.push({ id: uid(), nome, contato: document.getElementById('mCadContato').value.trim(), obs:'' });
+      await persistClientes();
+    } else if(sub==='formas'){
+      state.formas.push({ id: uid(), nome });
+      await persistFormas();
+    } else if(sub==='bancos'){
+      const corSel = document.querySelector('input[name="mCadCor"]:checked');
+      state.contas.push({ id:'Banco_'+uid(), nome, tipo:'banco', cor: corSel ? corSel.value : 'purple' });
+      await persistContas();
+    }
+    toastSuccess('Cadastro salvo com sucesso.');
+    closeMSheet();
+    renderCadContent();
+  });
+}
+
+/* ================= VIEW MOBILE: RELATÓRIOS =================
+   Reaproveita os MESMOS ids (relPeriodo/relAno/relMes/relTipo/relPreview/
+   btnExportCSV/btnPrint) que getRelatorioEntries()/renderRelPreview()/
+   exportarCSV() já leem — só muda a apresentação visual dos campos. */
+function renderRelatoriosMobileHTML({ ano, anos, mes, tipo }){
+  return `
+    <div class="m-card">
+      <div class="m-card-title">Gerar relatório</div>
+      <div class="m-field"><div class="lbl">Período</div>
+        <select id="relPeriodo"><option value="mes">Mês específico</option><option value="ano">Ano inteiro</option></select>
+      </div>
+      <div class="m-field" id="relAnoWrap"><div class="lbl">Ano</div>
+        <select id="relAno">${anos.map(a=>`<option value="${a}" ${a===ano?'selected':''}>${a}</option>`).join('')}</select>
+      </div>
+      <div class="m-field" id="relMesWrap"><div class="lbl">Mês</div>
+        <select id="relMes">${MESES.map((m,i)=>`<option value="${i}" ${i===mes?'selected':''}>${m}</option>`).join('')}</select>
+      </div>
+      <div class="m-field"><div class="lbl">Tipo</div>
+        <select id="relTipo">
+          <option value="todos" ${tipo==='todos'?'selected':''}>Entradas e Saídas</option>
+          <option value="entrada" ${tipo==='entrada'?'selected':''}>Somente Entradas</option>
+          <option value="saida" ${tipo==='saida'?'selected':''}>Somente Saídas</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="m-primary-btn" id="btnExportCSV" style="flex:1;">⇩ Exportar CSV</button>
+        <button class="m-outline-btn" id="btnPrint" style="flex:1;">🖶 Imprimir</button>
+      </div>
+    </div>
+    <div class="m-card">
+      <div class="m-card-title">Prévia do relatório</div>
+      <div class="table-wrap" id="relPreview"></div>
+    </div>
+  `;
+}
+
+function wireRelatoriosMobileEvents(){
+  atualizarMHeader('relatorios');
+  document.getElementById('mHeaderSub').textContent = 'Exportar e imprimir';
+
+  const relatorioAtualizarMobile = ()=>{
+    state.relTipo = document.getElementById('relTipo').value;
+    const periodo = document.getElementById('relPeriodo').value;
+    state.relAno = Number(document.getElementById('relAno').value);
+    document.getElementById('relMesWrap').style.display = periodo==='mes' ? 'block' : 'none';
+    if(periodo==='mes') state.relMes = Number(document.getElementById('relMes').value);
+    renderRelPreview(periodo);
+  };
+
+  document.getElementById('relPeriodo').addEventListener('change', relatorioAtualizarMobile);
+  document.getElementById('relAno').addEventListener('change', relatorioAtualizarMobile);
+  document.getElementById('relMes').addEventListener('change', relatorioAtualizarMobile);
+  document.getElementById('relTipo').addEventListener('change', relatorioAtualizarMobile);
+  document.getElementById('btnExportCSV').addEventListener('click', exportarCSV);
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+
+  renderRelPreview('mes');
+}
+
 /* ================= INIT ================= */
 document.addEventListener('DOMContentLoaded', ()=>{
   initAuth();
@@ -1087,6 +2070,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 function renderCadastros(){
   document.getElementById('topbarActions').innerHTML = '';
+
+  if(isMobileViewport()){
+    document.getElementById('content').innerHTML = `
+      <div class="m-chip-row" style="margin-bottom:16px;" id="mCadTabs">
+        <button class="m-chip ${state.cadastroSub==='fornecedores'?'active':''}" data-tab="fornecedores">Fornecedores</button>
+        <button class="m-chip ${state.cadastroSub==='clientes'?'active':''}" data-tab="clientes">Clientes</button>
+        <button class="m-chip ${state.cadastroSub==='formas'?'active':''}" data-tab="formas">Pagamento</button>
+        <button class="m-chip ${state.cadastroSub==='bancos'?'active':''}" data-tab="bancos">Bancos/Contas</button>
+      </div>
+      <div class="m-group" id="mCadList" style="margin-bottom:14px;"></div>
+      <button class="m-add-btn" id="mBtnCadAdd">+ Adicionar</button>
+    `;
+    document.querySelectorAll('#mCadTabs button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        state.cadastroSub = btn.dataset.tab;
+        document.querySelectorAll('#mCadTabs button').forEach(b=> b.classList.toggle('active', b===btn));
+        renderCadContent();
+      });
+    });
+    document.getElementById('mBtnCadAdd').addEventListener('click', abrirCadAddSheetMobile);
+    atualizarMHeader('cadastros');
+    document.getElementById('mHeaderSub').textContent = 'Fornecedores, clientes, contas';
+    renderCadContent();
+    return;
+  }
+
   document.getElementById('content').innerHTML = `
     <div class="tabs-sub" id="cadTabs">
       <button data-tab="fornecedores" class="${state.cadastroSub==='fornecedores'?'active':''}">Fornecedores</button>
@@ -1109,6 +2118,12 @@ function renderCadastros(){
 
 function renderCadContent(){
   const sub = state.cadastroSub;
+
+  if(isMobileViewport()){
+    renderCadContentMobile(sub);
+    return;
+  }
+
   const el = document.getElementById('cadContent');
 
   if(sub==='fornecedores' || sub==='clientes'){
@@ -1340,10 +2355,12 @@ function categoriasParaMovimento(mov){
   return [];
 }
 
-function renderLancamentos(){
-  document.getElementById('topbarActions').innerHTML = `<button class="btn btn-primary btn-sm" id="btnNovoLanc">＋ Novo lançamento</button>`;
-
-  const html = `
+/* Markup do painel Novo/Editar lançamento — usado no template desktop e reaproveitado,
+   com os MESMOS ids, no template mobile (para que abrirFormLanc/fecharFormLanc/
+   montarCamposForm funcionem idênticos nos dois, sem duplicar lógica). No mobile, o
+   CSS dentro de @media(max-width:800px) transforma esse mesmo painel num bottom sheet. */
+function formPanelHTML(){
+  return `
     <div class="panel" id="formPanel" style="display:none;">
       <div class="panel-head">
         <h3 id="formTitle">Novo lançamento</h3>
@@ -1362,7 +2379,36 @@ function renderLancamentos(){
           <button type="button" class="btn btn-outline" id="btnCancelarForm">Cancelar</button>
         </div>
       </form>
-    </div>
+    </div>`;
+}
+
+/* Wiring do painel de formulário que independe de estar no template desktop ou
+   mobile (mesmos ids, vindos de formPanelHTML()) — reaproveitado nos dois. */
+function wireFormPanelBaseEvents(){
+  document.getElementById('btnFecharForm').addEventListener('click', fecharFormLanc);
+  document.getElementById('btnCancelarForm').addEventListener('click', fecharFormLanc);
+  document.querySelectorAll('#movTabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#movTabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      montarCamposForm(btn.dataset.mov);
+    });
+  });
+}
+
+function renderLancamentos(){
+  document.getElementById('topbarActions').innerHTML = `<button class="btn btn-primary btn-sm" id="btnNovoLanc">＋ Novo lançamento</button>`;
+
+  if(isMobileViewport()){
+    atualizarListaLanc();
+    document.getElementById('content').innerHTML = `${formPanelHTML()}${renderLancamentosMobileHTML()}`;
+    wireFormPanelBaseEvents();
+    wireLancamentosMobileEvents();
+    return;
+  }
+
+  const html = `
+    ${formPanelHTML()}
 
     <div class="panel">
       <div class="panel-head"><h3>Filtrar lançamentos</h3></div>
@@ -1468,16 +2514,7 @@ function renderLancamentos(){
   document.getElementById('content').innerHTML = html;
 
   document.getElementById('btnNovoLanc').addEventListener('click', ()=> abrirFormLanc());
-  document.getElementById('btnFecharForm').addEventListener('click', fecharFormLanc);
-  document.getElementById('btnCancelarForm').addEventListener('click', fecharFormLanc);
-
-  document.querySelectorAll('#movTabs button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('#movTabs button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      montarCamposForm(btn.dataset.mov);
-    });
-  });
+  wireFormPanelBaseEvents();
 
   // filtros
   const f = state.filtroLanc;
@@ -1572,6 +2609,10 @@ function atualizarListaLanc(){
   list.sort((a,b)=> b.data.localeCompare(a.data));
   state.__filtroLancResult = list;
 
+  // A tabela/lista abaixo só existe no template desktop (no mobile, a view
+  // Lançamentos usa seus próprios cards, lidos de state.__filtroLancResult acima).
+  if(!document.getElementById('countInfo')) return;
+
   document.getElementById('countInfo').textContent = `${list.length} lançamento(s)` + (f.busca ? ` para "${f.busca}"` : '');
 
   const rows = list.map(e=>{
@@ -1602,16 +2643,18 @@ function atualizarListaLanc(){
     btn.addEventListener('click', ()=> abrirFormLanc(btn.dataset.edit));
   });
   document.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const ok = await confirmDialog('Excluir lançamento?', 'Essa ação não pode ser desfeita.');
-      if(!ok) return;
-      state.entries = state.entries.filter(e=>e.id!==btn.dataset.del);
-      await persistEntries();
-      toast('Lançamento excluído.');
-      atualizarListaLanc();
-      atualizarSaldoMiniIfExists();
-    });
+    btn.addEventListener('click', ()=> excluirLancamento(btn.dataset.del));
   });
+}
+
+async function excluirLancamento(id){
+  const ok = await confirmDialog('Excluir lançamento?', 'Essa ação não pode ser desfeita.');
+  if(!ok) return;
+  state.entries = state.entries.filter(e=>e.id!==id);
+  await persistEntries();
+  toast('Lançamento excluído.');
+  atualizarListaLanc();
+  atualizarSaldoMiniIfExists();
 }
 
 function atualizarSaldoMiniIfExists(){ /* hook reservado para futuras atualizações reativas */ }
@@ -1823,6 +2866,16 @@ function renderMensal(){
   if(cmvTotal > 0) despesaPctBase.push(['CMV', cmvTotal]);
   despesaPctBase.sort((a,b)=> b[1]-a[1]);
   const despesaPctArr = despesaPctBase.map(([cat,v])=> ({ cat, pct: totalEntCat>0 ? (v/totalEntCat*100) : 0 }));
+
+  if(isMobileViewport()){
+    document.getElementById('content').innerHTML = renderMensalMobileHTML({
+      ano, mes, totalEntMes, totalSaiMes, filtroVD, filtroVDAtivo, totalVendasPeriodo, labelVendasPeriodo,
+      entCatArr, saiCatArr, totalEntCat, totalSaiCat, periodoCatLabel, vendasDiaArr, totalVendasMes,
+      saiCatArrMes, despesaPctArr
+    });
+    wireMensalMobileEvents({ ano, mes });
+    return;
+  }
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-3" style="margin-bottom:20px;">
@@ -2073,6 +3126,12 @@ function renderDashboard(){
         <div class="stat-sub">${c.tipo==='especie' ? 'Dinheiro físico no caixa' : 'Conta bancária'}</div>
       </div>`;
   }).join('');
+
+  if(isMobileViewport()){
+    document.getElementById('content').innerHTML = renderDashboardMobileHTML({ ano, saldo, total, resumo, totalEntAno, totalSaiAno, lucroLiquido });
+    wireDashboardMobileEvents({ ano });
+    return;
+  }
 
   const html = `
     <div class="grid grid-3" style="margin-bottom:18px;">
