@@ -797,15 +797,32 @@ async function getCurrentUserId(){
   return _cachedUserId;
 }
 
-async function storeGet(key){
+/* storeGet NUNCA retorna null silenciosamente por causa de um erro — só retorna
+   null quando a busca teve SUCESSO e não existe linha nenhuma para essa chave
+   (usuário genuinamente novo). Qualquer erro real (rede, RLS, timeout, sessão
+   ainda não pronta etc.) é relançado (throw) depois de algumas tentativas, para
+   que quem chamar consiga diferenciar "não existe" de "falhou ao buscar" — foi
+   exatamente a confusão entre esses dois casos que causou a perda de dados em
+   produção (loadAllData tratava falha de leitura como "não existe" e regravava
+   os dados de exemplo por cima dos dados reais do usuário). */
+async function storeGet(key, attempt){
+  attempt = attempt || 1;
+  const MAX_ATTEMPTS = 3;
   try{
-    if(!sb) return null;
+    if(!sb) throw new Error('Supabase não está configurado (sb é null).');
     const userId = await getCurrentUserId();
-    if(!userId) return null;
+    if(!userId) throw new Error('Não foi possível identificar o usuário logado (getCurrentUserId retornou vazio).');
     const { data, error } = await sb.from('kv_store').select('value').eq('user_id', userId).eq('key', key).maybeSingle();
-    if(error){ console.error('storeGet falhou:', key, error); return null; }
+    if(error) throw error;
     return data ? data.value : null;
-  } catch(e){ console.error('storeGet exceção:', key, e); return null; }
+  } catch(e){
+    console.error(`storeGet: falha na tentativa ${attempt}/${MAX_ATTEMPTS} para a chave "${key}":`, e);
+    if(attempt < MAX_ATTEMPTS){
+      await new Promise(resolve=> setTimeout(resolve, attempt===1 ? 500 : 1000));
+      return storeGet(key, attempt+1);
+    }
+    throw e;
+  }
 }
 
 async function storeSet(key, value){
@@ -1036,14 +1053,60 @@ async function initAuth(){
 }
 
 async function bootApp(){
+  ensureChartLib().catch(()=>{ /* falha silenciosa aqui; cada gráfico trata o próprio erro na hora de renderizar */ });
+
+  try{
+    await loadAllData();
+  } catch(e){
+    // Nunca prosseguimos para dentro do app com dados possivelmente incompletos/
+    // sobrescritos. Mostra a tela de erro (ainda na área do #authScreen) e para o boot aqui.
+    console.error('bootApp: falha ao carregar dados do usuário, boot interrompido por segurança:', e);
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    renderLoadError(e);
+    return;
+  }
+
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  ensureChartLib().catch(()=>{ /* falha silenciosa aqui; cada gráfico trata o próprio erro na hora de renderizar */ });
-  await loadAllData();
   initNav();
   initMobileShell();
   renderTopbarDate();
   navigateTo('dashboard');
+  checkBackupReminder();
+}
+
+function renderLoadError(err){
+  const box = document.getElementById('ticketBox');
+  box.innerHTML = `
+    <div class="ticket-brand">
+      <div class="ticket-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h16l-1.5 10a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      </div>
+      <span class="eyebrow">Lanchonete Central</span>
+      <h1>Painel de Caixa</h1>
+      <div class="sub">Não foi possível carregar seus dados</div>
+    </div>
+    <hr class="ticket-divider">
+    <p style="font-size:13px; color:var(--ink-soft); line-height:1.6;">
+      Houve uma falha ao buscar seus dados no servidor (pode ser instabilidade de rede ou do banco
+      de dados). Por segurança, o aplicativo <strong>não prosseguiu</strong> — assim nenhum dado seu
+      corre o risco de ser sobrescrito. Verifique sua conexão e tente novamente.
+    </p>
+    <button class="btn btn-primary btn-block" id="btnRetryLoad" style="margin-top:16px;">Tentar novamente</button>
+    <button class="btn btn-ghost btn-block" id="btnLoadErrorLogout" style="margin-top:8px;">Sair da conta</button>
+  `;
+  document.getElementById('btnRetryLoad').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btnRetryLoad');
+    btn.textContent = 'Tentando novamente...';
+    btn.disabled = true;
+    await bootApp();
+  });
+  document.getElementById('btnLoadErrorLogout').addEventListener('click', async ()=>{
+    if(sb) await sb.auth.signOut();
+    _cachedUserId = null;
+    renderAuthLogin();
+  });
 }
 
 document.getElementById('btnLockNow') && document.getElementById('btnLockNow').addEventListener('click', async ()=>{
@@ -1060,27 +1123,82 @@ function renderTopbarDate(){
   el.textContent = 'Hoje: ' + now.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
 }
 
-/* ---------- Data load / persist ---------- */
+/* ---------- Data load / persist ----------
+   Regra de ouro pós-incidente: só é seguro popular dados de exemplo (seed) quando
+   TODAS as chaves vierem ausentes (usuário genuinamente novo) E a chave de controle
+   lc_initialized também não existir ainda. Qualquer erro real numa das buscas faz
+   loadAllData() lançar (throw) e o boot é interrompido ANTES de qualquer storeSet —
+   nunca sobrescrevemos nada no banco em cima de uma falha de leitura. */
 async function loadAllData(){
-  const [entries, fornecedores, clientes, formas, categorias, contas] = await Promise.all([
+  const [entries, fornecedores, clientes, formas, categorias, contas, initialized] = await Promise.all([
     storeGet('lc_entries'), storeGet('lc_fornecedores'), storeGet('lc_clientes'),
-    storeGet('lc_formas'), storeGet('lc_categorias'), storeGet('lc_contas')
+    storeGet('lc_formas'), storeGet('lc_categorias'), storeGet('lc_contas'), storeGet('lc_initialized')
   ]);
+  // Se qualquer storeGet acima tiver falhado de verdade (após as tentativas de retry),
+  // a exceção já foi lançada dentro do Promise.all e essa função já teria parado aqui.
 
-  state.entries = entries ? JSON.parse(entries) : SEED_ENTRIES.slice();
-  state.fornecedores = fornecedores ? JSON.parse(fornecedores) : SEED_FORNECEDORES.slice();
-  state.clientes = clientes ? JSON.parse(clientes) : SEED_CLIENTES.slice();
-  state.formas = formas ? JSON.parse(formas) : SEED_FORMAS.slice();
-  state.categorias = categorias ? JSON.parse(categorias) : { entradas: SEED_ENTRADAS_CAT.slice(), saidas: SEED_SAIDAS_CAT.slice() };
-  state.contas = contas ? JSON.parse(contas) : SEED_CONTAS.slice();
+  const algumaChaveAusente = entries===null || fornecedores===null || clientes===null || formas===null || categorias===null || contas===null;
+  const todasAsChavesAusentes = entries===null && fornecedores===null && clientes===null && formas===null && categorias===null && contas===null;
 
-  // Persist seed on first run so future edits have something to save against
-  if(!entries) await storeSet('lc_entries', JSON.stringify(state.entries));
-  if(!fornecedores) await storeSet('lc_fornecedores', JSON.stringify(state.fornecedores));
-  if(!clientes) await storeSet('lc_clientes', JSON.stringify(state.clientes));
-  if(!formas) await storeSet('lc_formas', JSON.stringify(state.formas));
-  if(!categorias) await storeSet('lc_categorias', JSON.stringify(state.categorias));
-  if(!contas) await storeSet('lc_contas', JSON.stringify(state.contas));
+  if(initialized !== null){
+    // Essa conta já foi inicializada antes com sucesso. A partir daqui, TODA chave
+    // deve sempre existir (mesmo que vazia, ex: "[]") — se alguma estiver ausente,
+    // isso não é "usuário novo", é uma inconsistência real. Nunca gravamos nada
+    // por cima; interrompemos e deixamos o chamador (bootApp) mostrar erro.
+    if(algumaChaveAusente){
+      throw new Error('Inconsistência: a conta já foi inicializada anteriormente, mas alguns dados não foram encontrados no servidor. Por segurança, nada foi sobrescrito.');
+    }
+    state.entries = JSON.parse(entries);
+    state.fornecedores = JSON.parse(fornecedores);
+    state.clientes = JSON.parse(clientes);
+    state.formas = JSON.parse(formas);
+    state.categorias = JSON.parse(categorias);
+    state.contas = JSON.parse(contas);
+    return;
+  }
+
+  if(todasAsChavesAusentes){
+    // lc_initialized nunca existiu E nenhuma chave de dado existe: usuário
+    // genuinamente novo. Só AQUI é seguro popular com os dados de exemplo.
+    state.entries = SEED_ENTRIES.slice();
+    state.fornecedores = SEED_FORNECEDORES.slice();
+    state.clientes = SEED_CLIENTES.slice();
+    state.formas = SEED_FORMAS.slice();
+    state.categorias = { entradas: SEED_ENTRADAS_CAT.slice(), saidas: SEED_SAIDAS_CAT.slice() };
+    state.contas = SEED_CONTAS.slice();
+    await Promise.all([
+      storeSet('lc_entries', JSON.stringify(state.entries)),
+      storeSet('lc_fornecedores', JSON.stringify(state.fornecedores)),
+      storeSet('lc_clientes', JSON.stringify(state.clientes)),
+      storeSet('lc_formas', JSON.stringify(state.formas)),
+      storeSet('lc_categorias', JSON.stringify(state.categorias)),
+      storeSet('lc_contas', JSON.stringify(state.contas)),
+    ]);
+    await storeSet('lc_initialized', 'true');
+    return;
+  }
+
+  // lc_initialized ainda não existe, mas nem todas as chaves estão ausentes: é uma
+  // conta com dados reais anterior a este fix (ainda não tinha a marca de controle).
+  // Carregamos o que existe de verdade e só preenchemos com seed a chave que
+  // individualmente estiver ausente — nunca tocamos nas chaves que já têm dado.
+  state.entries = entries!==null ? JSON.parse(entries) : SEED_ENTRIES.slice();
+  state.fornecedores = fornecedores!==null ? JSON.parse(fornecedores) : SEED_FORNECEDORES.slice();
+  state.clientes = clientes!==null ? JSON.parse(clientes) : SEED_CLIENTES.slice();
+  state.formas = formas!==null ? JSON.parse(formas) : SEED_FORMAS.slice();
+  state.categorias = categorias!==null ? JSON.parse(categorias) : { entradas: SEED_ENTRADAS_CAT.slice(), saidas: SEED_SAIDAS_CAT.slice() };
+  state.contas = contas!==null ? JSON.parse(contas) : SEED_CONTAS.slice();
+
+  const gravacoesPendentes = [];
+  if(entries===null) gravacoesPendentes.push(storeSet('lc_entries', JSON.stringify(state.entries)));
+  if(fornecedores===null) gravacoesPendentes.push(storeSet('lc_fornecedores', JSON.stringify(state.fornecedores)));
+  if(clientes===null) gravacoesPendentes.push(storeSet('lc_clientes', JSON.stringify(state.clientes)));
+  if(formas===null) gravacoesPendentes.push(storeSet('lc_formas', JSON.stringify(state.formas)));
+  if(categorias===null) gravacoesPendentes.push(storeSet('lc_categorias', JSON.stringify(state.categorias)));
+  if(contas===null) gravacoesPendentes.push(storeSet('lc_contas', JSON.stringify(state.contas)));
+  await Promise.all(gravacoesPendentes);
+  // Marca a conta como inicializada para nunca mais cair nesse caminho ambíguo.
+  await storeSet('lc_initialized', 'true');
 }
 
 async function persistEntries(){ await storeSet('lc_entries', JSON.stringify(state.entries)); }
@@ -1089,6 +1207,120 @@ async function persistClientes(){ await storeSet('lc_clientes', JSON.stringify(s
 async function persistFormas(){ await storeSet('lc_formas', JSON.stringify(state.formas)); }
 async function persistCategorias(){ await storeSet('lc_categorias', JSON.stringify(state.categorias)); }
 async function persistContas(){ await storeSet('lc_contas', JSON.stringify(state.contas)); }
+
+/* ================= BACKUP MANUAL ================= */
+const BACKUP_KEYS = ['lc_entries','lc_fornecedores','lc_clientes','lc_formas','lc_categorias','lc_contas'];
+
+async function baixarBackupCompleto(){
+  try{
+    let email = '';
+    try{
+      const { data } = await sb.auth.getUser();
+      email = (data && data.user && data.user.email) || '';
+    } catch(e){ /* segue sem e-mail no metadado se isso falhar */ }
+
+    const payload = {
+      _meta: {
+        app: 'Lanchonete Central — Painel de Caixa',
+        geradoEm: new Date().toISOString(),
+        usuario: email
+      },
+      lc_entries: state.entries,
+      lc_fornecedores: state.fornecedores,
+      lc_clientes: state.clientes,
+      lc_formas: state.formas,
+      lc_categorias: state.categorias,
+      lc_contas: state.contas
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date();
+    const pad = n=> String(n).padStart(2,'0');
+    const nomeArquivo = `backup-lanchonete-central-${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.json`;
+    a.href = url; a.download = nomeArquivo;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    try{ localStorage.setItem('lc_ultimo_backup', now.toISOString()); }catch(e){ /* localStorage indisponível não é crítico */ }
+
+    toastSuccess('Backup baixado com sucesso.');
+  } catch(e){
+    console.error('Falha ao gerar backup:', e);
+    toast('Não foi possível gerar o backup agora. Tente novamente.');
+  }
+}
+
+async function restaurarBackupArquivo(file){
+  let payload;
+  try{
+    const texto = await file.text();
+    payload = JSON.parse(texto);
+  } catch(e){
+    toast('Esse arquivo não é um backup .json válido.');
+    return;
+  }
+
+  const faltando = BACKUP_KEYS.filter(k=> !(k in payload));
+  if(faltando.length){
+    toast('Arquivo de backup incompleto — faltam dados esperados nele.');
+    return;
+  }
+
+  const meta = payload._meta;
+  const infoData = meta && meta.geradoEm ? new Date(meta.geradoEm).toLocaleString('pt-BR') : 'data desconhecida';
+  const infoUsuario = meta && meta.usuario ? ` (conta: ${meta.usuario})` : '';
+  const ok = await confirmDialog(
+    'Restaurar backup?',
+    `Isso vai SOBRESCREVER todos os dados atuais (lançamentos, fornecedores, clientes, formas de pagamento e contas) com o conteúdo desse arquivo, gerado em ${infoData}${infoUsuario}. Essa ação não pode ser desfeita automaticamente.`
+  );
+  if(!ok) return;
+
+  try{
+    state.entries = payload.lc_entries;
+    state.fornecedores = payload.lc_fornecedores;
+    state.clientes = payload.lc_clientes;
+    state.formas = payload.lc_formas;
+    state.categorias = payload.lc_categorias;
+    state.contas = payload.lc_contas;
+
+    await Promise.all([
+      storeSet('lc_entries', JSON.stringify(state.entries)),
+      storeSet('lc_fornecedores', JSON.stringify(state.fornecedores)),
+      storeSet('lc_clientes', JSON.stringify(state.clientes)),
+      storeSet('lc_formas', JSON.stringify(state.formas)),
+      storeSet('lc_categorias', JSON.stringify(state.categorias)),
+      storeSet('lc_contas', JSON.stringify(state.contas)),
+    ]);
+    await storeSet('lc_initialized', 'true');
+
+    toastSuccess('Backup restaurado com sucesso.');
+    navigateTo(state.currentView || 'dashboard');
+  } catch(e){
+    console.error('Falha ao restaurar backup:', e);
+    toast('Não foi possível restaurar o backup agora. Tente novamente.');
+  }
+}
+
+/* Lembrete discreto (não bloqueante) para o usuário baixar um backup manual de
+   tempos em tempos. A data do último backup fica só no localStorage do navegador
+   (não precisa ir para o Supabase, é só uma conveniência de UI). */
+function checkBackupReminder(){
+  try{
+    const ultimo = localStorage.getItem('lc_ultimo_backup');
+    const jaAvisouNestaSessao = sessionStorage.getItem('lc_backup_reminder_shown');
+    if(jaAvisouNestaSessao) return;
+    const umDiaMs = 24*60*60*1000;
+    const precisaAvisar = !ultimo || (Date.now() - new Date(ultimo).getTime()) > umDiaMs;
+    if(precisaAvisar){
+      sessionStorage.setItem('lc_backup_reminder_shown', '1');
+      setTimeout(()=>{
+        toast('Já faz um tempo desde seu último backup — considere baixar um agora (Cadastros → Backup).', { duration:6000 });
+      }, 1500);
+    }
+  } catch(e){ /* localStorage/sessionStorage indisponível não é crítico */ }
+}
 
 
 /* ================= NAVEGAÇÃO ================= */
@@ -1915,7 +2147,44 @@ function renderCadContentMobile(sub){
   const list = document.getElementById('mCadList');
   const addBtn = document.getElementById('mBtnCadAdd');
   const labels = { fornecedores:'fornecedor', clientes:'cliente', formas:'forma de pagamento', bancos:'conta' };
-  if(addBtn) addBtn.textContent = '+ Adicionar ' + labels[sub];
+  if(addBtn){
+    if(sub==='backup'){ addBtn.style.display = 'none'; }
+    else { addBtn.style.display = ''; addBtn.textContent = '+ Adicionar ' + labels[sub]; }
+  }
+
+  if(sub==='backup'){
+    const ultimoBackup = (()=>{ try{ return localStorage.getItem('lc_ultimo_backup'); }catch(e){ return null; } })();
+    const ultimoBackupLabel = ultimoBackup ? new Date(ultimoBackup).toLocaleString('pt-BR') : 'Nunca feito neste navegador';
+    list.innerHTML = `
+      <div style="padding:16px;">
+        <div style="font-size:13.5px; font-weight:700; margin-bottom:6px;">Baixar backup</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.55; margin-bottom:8px;">
+          Baixe uma cópia de segurança de TODOS os seus dados (lançamentos, fornecedores, clientes,
+          formas de pagamento e contas) num arquivo .json. Guarde num lugar seguro.
+        </div>
+        <div style="font-size:11.5px; color:var(--muted); margin-bottom:14px;">Último backup neste navegador: <strong>${ultimoBackupLabel}</strong></div>
+        <button class="m-primary-btn" id="mBtnBaixarBackup" style="width:100%;">⇩ Baixar backup completo agora</button>
+      </div>
+      <div style="padding:0 16px 16px; border-top:1px solid var(--surface-2); margin-top:6px;">
+        <div style="font-size:13.5px; font-weight:700; margin:16px 0 6px;">Restaurar backup</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.55; margin-bottom:14px;">
+          Selecione um arquivo .json de backup para sobrescrever os dados atuais com o conteúdo dele.
+        </div>
+        <input type="file" accept="application/json,.json" id="mInputRestoreBackup" style="display:none;">
+        <button class="m-outline-btn" id="mBtnRestaurarBackup" style="width:100%;">⇧ Selecionar arquivo de backup...</button>
+      </div>
+    `;
+    document.getElementById('mBtnBaixarBackup').addEventListener('click', baixarBackupCompleto);
+    document.getElementById('mBtnRestaurarBackup').addEventListener('click', ()=> document.getElementById('mInputRestoreBackup').click());
+    document.getElementById('mInputRestoreBackup').addEventListener('change', async (ev)=>{
+      const file = ev.target.files[0];
+      ev.target.value = '';
+      if(!file) return;
+      await restaurarBackupArquivo(file);
+      renderCadContent();
+    });
+    return;
+  }
 
   let rows = [];
   if(sub==='fornecedores' || sub==='clientes'){
@@ -2078,6 +2347,7 @@ function renderCadastros(){
         <button class="m-chip ${state.cadastroSub==='clientes'?'active':''}" data-tab="clientes">Clientes</button>
         <button class="m-chip ${state.cadastroSub==='formas'?'active':''}" data-tab="formas">Pagamento</button>
         <button class="m-chip ${state.cadastroSub==='bancos'?'active':''}" data-tab="bancos">Bancos/Contas</button>
+        <button class="m-chip ${state.cadastroSub==='backup'?'active':''}" data-tab="backup">Backup</button>
       </div>
       <div class="m-group" id="mCadList" style="margin-bottom:14px;"></div>
       <button class="m-add-btn" id="mBtnCadAdd">+ Adicionar</button>
@@ -2102,6 +2372,7 @@ function renderCadastros(){
       <button data-tab="clientes" class="${state.cadastroSub==='clientes'?'active':''}">Clientes</button>
       <button data-tab="formas" class="${state.cadastroSub==='formas'?'active':''}">Formas de Pagamento</button>
       <button data-tab="bancos" class="${state.cadastroSub==='bancos'?'active':''}">Bancos / Contas</button>
+      <button data-tab="backup" class="${state.cadastroSub==='backup'?'active':''}">Backup</button>
     </div>
     <div id="cadContent"></div>
   `;
@@ -2343,6 +2614,40 @@ function renderCadContent(){
         toast('Conta removida.');
         renderCadContent();
       });
+    });
+  } else if(sub==='backup'){
+    const ultimoBackup = (()=>{ try{ return localStorage.getItem('lc_ultimo_backup'); }catch(e){ return null; } })();
+    const ultimoBackupLabel = ultimoBackup ? new Date(ultimoBackup).toLocaleString('pt-BR') : 'Nunca feito neste navegador';
+    el.innerHTML = `
+      <div class="panel">
+        <div class="panel-head"><h3>Baixar backup</h3></div>
+        <p class="mini-note" style="margin-top:0;">
+          Baixe uma cópia de segurança de TODOS os seus dados (lançamentos, fornecedores, clientes,
+          formas de pagamento e contas) num único arquivo <code>.json</code>. Guarde esse arquivo em
+          um lugar seguro (e-mail, Drive, etc.) — ele serve para restaurar tudo caso algo dê errado.
+        </p>
+        <div class="mini-note" style="margin-bottom:14px;">Último backup baixado neste navegador: <strong>${ultimoBackupLabel}</strong></div>
+        <button class="btn btn-primary btn-sm" id="btnBaixarBackup">⇩ Baixar backup completo agora</button>
+      </div>
+      <div class="panel" style="border:1.5px dashed var(--border-strong); background:var(--surface-2);">
+        <div class="panel-head"><h3>Restaurar backup</h3></div>
+        <p class="mini-note" style="margin-top:0;">
+          Selecione um arquivo <code>.json</code> gerado pelo botão acima para <strong>sobrescrever</strong>
+          os dados atuais com o conteúdo desse backup. Use com cuidado — essa ação substitui os dados de
+          hoje pelos dados do arquivo selecionado.
+        </p>
+        <input type="file" accept="application/json,.json" id="inputRestoreBackup" style="display:none;">
+        <button class="btn btn-outline btn-sm" id="btnRestaurarBackup">⇧ Selecionar arquivo de backup...</button>
+      </div>
+    `;
+    document.getElementById('btnBaixarBackup').addEventListener('click', baixarBackupCompleto);
+    document.getElementById('btnRestaurarBackup').addEventListener('click', ()=> document.getElementById('inputRestoreBackup').click());
+    document.getElementById('inputRestoreBackup').addEventListener('change', async (ev)=>{
+      const file = ev.target.files[0];
+      ev.target.value = '';
+      if(!file) return;
+      await restaurarBackupArquivo(file);
+      renderCadContent();
     });
   }
 }
