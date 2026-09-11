@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lanchonete Central — Painel de Caixa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -108,7 +108,7 @@
     background:var(--surface); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:var(--ink);
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .field input:focus, .field select:focus, .field textarea:focus{
+  .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible{
     outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft);
   }
   .btn{
@@ -481,6 +481,7 @@
     .m-search-wrap{ flex:1; position:relative; }
     .m-search-wrap svg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); }
     .m-search-wrap input{ width:100%; box-sizing:border-box; padding:12px 14px 12px 38px; border:1.5px solid var(--border); border-radius:14px; background:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:var(--ink); outline:none; }
+    .m-search-wrap input:focus-visible{ border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft); }
     .m-filter-btn{ position:relative; width:46px; height:46px; border-radius:14px; border:1.5px solid var(--border); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0; }
     .m-filter-badge{ position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; border-radius:9px; background:var(--brand); color:#2A1B00; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px; }
     .m-group-head{ display:flex; justify-content:space-between; align-items:baseline; padding:0 4px 8px; }
@@ -509,6 +510,7 @@
     .m-field{ margin-bottom:16px; }
     .m-field .lbl{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
     .m-field input, .m-field select{ width:100%; box-sizing:border-box; padding:12px 14px; border:1.5px solid var(--border-strong); border-radius:13px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:var(--ink); outline:none; background:#fff; }
+    .m-field input:focus-visible, .m-field select:focus-visible{ border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft); }
     .m-primary-btn{ width:100%; padding:15px; border-radius:15px; border:none; background:var(--brand); color:#2A1B00; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:14.5px; box-shadow:0 4px 14px rgba(232,163,61,.4); }
     .m-outline-btn{ padding:14px; border-radius:13px; border:1.5px solid var(--border-strong); background:#fff; color:var(--ink); cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:13.5px; }
     .m-empty{ text-align:center; color:var(--muted); padding:40px 20px; }
@@ -544,7 +546,7 @@
       <h2 id="mHeaderTitle"></h2>
       <div class="sub" id="mHeaderSub"></div>
     </div>
-    <button id="mHeaderEye" title="Ocultar valores">
+    <button id="mHeaderEye" title="Ocultar valores" aria-label="Ocultar valores">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path id="mHeaderEyeIcon" d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 14.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6z"></path></svg>
     </button>
   </div>
@@ -562,29 +564,29 @@
       </div>
       <ul class="navlist" id="navlist">
         <li><button data-view="dashboard" class="active">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg>
           <span class="lbl">Fluxo Anual</span>
         </button></li>
         <li><button data-view="mensal">
-          <svg class="icon" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v3"/><path d="M16 3v3"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v3"/><path d="M16 3v3"/></svg>
           <span class="lbl">Mensal</span>
         </button></li>
         <li><button data-view="lancamentos">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
           <span class="lbl">Lançamentos</span>
         </button></li>
         <li><button data-view="cadastros">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16.5 8.5a3 3 0 1 1 0 6"/><path d="M15.5 14.2c2.3.3 4 1.6 4.7 3.8"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16.5 8.5a3 3 0 1 1 0 6"/><path d="M15.5 14.2c2.3.3 4 1.6 4.7 3.8"/></svg>
           <span class="lbl">Cadastros</span>
         </button></li>
         <li><button data-view="relatorios">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 19.5h16"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 19.5h16"/></svg>
           <span class="lbl">Relatórios</span>
         </button></li>
       </ul>
       <div class="sidebar-footer">
         <div class="who">
-          <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           Acesso individual
         </div>
         <button class="btn btn-ghost btn-sm" id="btnLockNow" style="color:#B9C2BC;">Bloquear painel</button>
@@ -605,7 +607,7 @@
     </div>
   </div>
 
-  <button id="mFab" title="Novo lançamento">
+  <button id="mFab" title="Novo lançamento" aria-label="Novo lançamento">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
   </button>
 
@@ -616,13 +618,13 @@
     <div class="m-sheet-grip"></div>
     <div class="m-sheet-head">
       <h3 id="mSheetTitle"></h3>
-      <button class="m-sheet-close" id="mSheetClose">✕</button>
+      <button class="m-sheet-close" id="mSheetClose" aria-label="Fechar">✕</button>
     </div>
     <div id="mSheetBody"></div>
   </div>
 </div>
 
-<div class="toast" id="toast"><span class="toast-ico"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span id="toastMsg"></span></div>
+<div class="toast" id="toast" aria-live="polite"><span class="toast-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span id="toastMsg"></span></div>
 
 <div class="modal-bg" id="confirmModal">
   <div class="modal">
@@ -1559,7 +1561,7 @@ function abrirNovoLancamentoMobile(){
 function initMobileShell(){
   document.getElementById('mBottomNav').innerHTML = M_NAV_TABS.map(([view,label,d])=>`
     <button data-mview="${view}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"></path></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"></path></svg>
       <span>${label}</span>
     </button>`).join('');
   document.querySelectorAll('#mBottomNav button').forEach(btn=>{
@@ -1610,7 +1612,7 @@ function renderDashboardMobileHTML({ ano, saldo, total, resumo, totalEntAno, tot
   const monthlyBars = resumo.totalEnt.map((v,i)=>{
     const inH = Math.round(v/maxM*100);
     const outH = Math.round(resumo.totalSai[i]/maxM*100);
-    return `<div class="m-vbar-col" data-mesidx="${i}">
+    return `<div class="m-vbar-col" data-mesidx="${i}" tabindex="0" role="button" aria-label="Ver resumo de ${MESES[i]}">
       <div class="bars"><div class="b" style="background:var(--green); height:${inH}%;"></div><div class="b" style="background:var(--red); opacity:.8; height:${outH}%;"></div></div>
       <div class="lbl">${MESES_ABBR[i]}</div>
     </div>`;
@@ -1693,6 +1695,12 @@ function wireDashboardMobileEvents({ ano }){
       state.mensalAno = ano;
       navigateTo('mensal');
     });
+    col.addEventListener('keydown', (ev)=>{
+      if(ev.key==='Enter' || ev.key===' '){
+        ev.preventDefault();
+        col.click();
+      }
+    });
   });
 }
 
@@ -1729,12 +1737,12 @@ function renderMensalMobileHTML({ ano, mes, totalEntMes, totalSaiMes, filtroVD, 
 
   return `
     <div class="m-card" style="display:flex; align-items:center; justify-content:space-between; padding:8px;">
-      <button class="m-outline-btn" id="mMesPrev" style="padding:10px 16px;">‹</button>
+      <button class="m-outline-btn" id="mMesPrev" style="padding:10px 16px;" aria-label="Mês anterior">‹</button>
       <div style="text-align:center;">
         <div style="font-size:15px; font-weight:800;">${MESES[mes]}</div>
         <div style="font-size:10.5px; color:var(--muted); font-weight:600;">${ano}</div>
       </div>
-      <button class="m-outline-btn" id="mMesNext" style="padding:10px 16px;">›</button>
+      <button class="m-outline-btn" id="mMesNext" style="padding:10px 16px;" aria-label="Próximo mês">›</button>
     </div>
 
     <div class="m-stat-grid">
@@ -1848,7 +1856,7 @@ function lancRowHTML(e){
         <button class="edit" data-edit-id="${e.id}">Editar</button>
         <button class="del" data-del-id="${e.id}">Excluir</button>
       </div>
-      <div class="m-row" data-rowid="${e.id}">
+      <div class="m-row" data-rowid="${e.id}" tabindex="0" role="button" aria-label="Ver detalhes do lançamento ${titulo} — ${valor}">
         <div class="ico" style="background:${soft}; color:${cor};">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${iconD}"></path></svg>
         </div>
@@ -1925,6 +1933,12 @@ function attachSwipeRow(rowEl, id){
     if(rowEl.dataset.justDragged) return;
     if(mOpenSwipeId===id){ closeOpenSwipeRow(); return; }
     abrirDetalhesLancamentoMobile(id);
+  });
+  rowEl.addEventListener('keydown', (ev)=>{
+    if(ev.key==='Enter' || ev.key===' '){
+      ev.preventDefault();
+      rowEl.click();
+    }
   });
 }
 
@@ -2139,7 +2153,7 @@ function mCadRowHTML(nome, sub, id, i, cor, valorText, canDelete){
         <div style="font-size:11.5px; color:var(--muted); margin-top:2px;">${sub}</div>
       </div>
       ${valorText ? `<div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:6px; white-space:nowrap;">${valorText}</div>` : ''}
-      ${canDelete ? `<button class="btn btn-ghost btn-sm" data-delcadm="${id}" style="color:var(--red); flex-shrink:0;" title="Remover">🗑</button>` : ''}
+      ${canDelete ? `<button class="btn btn-ghost btn-sm" data-delcadm="${id}" style="color:var(--red); flex-shrink:0;" title="Remover" aria-label="Remover ${nome}">🗑</button>` : ''}
     </div>`;
 }
 
@@ -2462,7 +2476,7 @@ function renderCadContent(){
         <div class="panel-head"><h3>Formas cadastradas (${state.formas.length})</h3></div>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
           ${state.formas.length ? state.formas.map(f=>`
-            <span class="chip">${f.nome} <button data-delforma="${f.id}">✕</button></span>
+            <span class="chip">${f.nome} <button data-delforma="${f.id}" aria-label="Remover forma de pagamento ${f.nome}">✕</button></span>
           `).join('') : `<div class="empty-state"><div class="ico">▧</div>Nenhuma forma de pagamento cadastrada</div>`}
         </div>
       </div>
@@ -2527,9 +2541,9 @@ function renderCadContent(){
                   </td>
                   <td class="num">${formatBRL(saldoAtual)}</td>
                   <td style="white-space:nowrap;">
-                    <button class="btn btn-ghost btn-sm" data-editbanco="${c.id}" title="Editar">✎</button>
-                    <button class="btn btn-ghost btn-sm" data-savebanco="${c.id}" style="display:none; color:var(--green);" title="Salvar">✓</button>
-                    ${c.tipo!=='especie' ? `<button class="btn btn-ghost btn-sm" data-delbanco="${c.id}" style="color:var(--red);" title="Excluir">🗑</button>` : ''}
+                    <button class="btn btn-ghost btn-sm" data-editbanco="${c.id}" title="Editar" aria-label="Editar conta ${c.nome}">✎</button>
+                    <button class="btn btn-ghost btn-sm" data-savebanco="${c.id}" style="display:none; color:var(--green);" title="Salvar" aria-label="Salvar conta ${c.nome}">✓</button>
+                    ${c.tipo!=='especie' ? `<button class="btn btn-ghost btn-sm" data-delbanco="${c.id}" style="color:var(--red);" title="Excluir" aria-label="Excluir conta ${c.nome}">🗑</button>` : ''}
                   </td>
                 </tr>`;
               }).join('')}
@@ -2787,7 +2801,7 @@ function renderLancamentos(){
           <input type="text" id="fBusca" placeholder="Buscar por descrição, categoria, fornecedor ou cliente...">
         </div>
         <button class="btn btn-primary btn-sm" id="btnPesquisar">
-          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           Pesquisar
         </button>
         <button class="btn btn-outline btn-sm" id="btnLimparBusca">Limpar</button>
@@ -2936,8 +2950,8 @@ function atualizarListaLanc(){
       <td>${statusStamp}</td>
       <td class="num val ${valClass}">${formatBRL(e.valor)}</td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" data-edit="${e.id}" title="Editar">✎</button>
-        <button class="btn btn-ghost btn-sm" data-del="${e.id}" title="Excluir" style="color:var(--red);">🗑</button>
+        <button class="btn btn-ghost btn-sm" data-edit="${e.id}" title="Editar" aria-label="Editar lançamento ${e.descricao || e.categoria}">✎</button>
+        <button class="btn btn-ghost btn-sm" data-del="${e.id}" title="Excluir" style="color:var(--red);" aria-label="Excluir lançamento ${e.descricao || e.categoria}">🗑</button>
       </td>
     </tr>`;
   }).join('');
@@ -3185,17 +3199,17 @@ function renderMensal(){
   document.getElementById('content').innerHTML = `
     <div class="grid grid-3" style="margin-bottom:20px;">
       <div class="card">
-        <div class="card-icon icon-green"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
+        <div class="card-icon icon-green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
         <div class="stat-label">Entradas — ${MESES[mes]}</div>
         <div class="stat-value" style="color:var(--green);">${formatBRL(totalEntMes)}</div>
       </div>
       <div class="card">
-        <div class="card-icon icon-red"><svg viewBox="0 0 24 24"><path d="M4 8l6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg></div>
+        <div class="card-icon icon-red" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8l6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg></div>
         <div class="stat-label">Saídas — ${MESES[mes]}</div>
         <div class="stat-value" style="color:var(--red);">${formatBRL(totalSaiMes)}</div>
       </div>
       <div class="card tone-total">
-        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
+        <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
         <div class="stat-label">Saldo do Mês</div>
         <div class="stat-value">${formatBRL(totalEntMes-totalSaiMes)}</div>
       </div>
@@ -3204,7 +3218,7 @@ function renderMensal(){
     <div class="panel" style="margin-bottom:20px;">
       <div class="panel-head">
         <div>
-          <div class="card-icon icon-green" style="margin-bottom:10px;"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
+          <div class="card-icon icon-green" style="margin-bottom:10px;" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
           <div class="stat-label">${labelVendasPeriodo}</div>
           <div class="stat-value" style="color:var(--green); font-size:27px;">${formatBRL(totalVendasPeriodo)}</div>
         </div>
@@ -3425,7 +3439,7 @@ function renderDashboard(){
     const iconClass = { mustard:'icon-mustard', blue:'icon-blue', green:'icon-green', purple:'icon-purple', red:'icon-red', teal:'icon-teal' }[c.cor] || 'icon-mustard';
     return `
       <div class="card" style="border-top:4px solid ${cor.dot}; background:linear-gradient(180deg, ${cor.bg} 0%, var(--surface) 60%);">
-        <div class="card-icon ${iconClass}">${iconAccountSVG(c.tipo)}</div>
+        <div class="card-icon ${iconClass}" aria-hidden="true">${iconAccountSVG(c.tipo)}</div>
         <div class="stat-label">Saldo ${c.nome}</div>
         <div class="stat-value" style="color:${cor.fg};">${formatBRL(saldo[c.id])}</div>
         <div class="stat-sub">${c.tipo==='especie' ? 'Dinheiro físico no caixa' : 'Conta bancária'}</div>
@@ -3441,19 +3455,19 @@ function renderDashboard(){
   const html = `
     <div class="grid grid-3" style="margin-bottom:18px;">
       <div class="card" style="border-top:5px solid var(--green); background:linear-gradient(180deg, var(--green-soft) 0%, var(--surface) 55%);">
-        <div class="card-icon icon-green"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
+        <div class="card-icon icon-green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l6-6 4 4 6-7"/><path d="M14 7h6v6"/></svg></div>
         <div class="stat-label">Faturamento Total (Anual)</div>
         <div class="stat-value mono" style="color:var(--green); font-size:27px;">${formatBRL(totalEntAno)}</div>
         <div class="stat-sub">Todas as entradas em ${ano}</div>
       </div>
       <div class="card" style="border-top:5px solid var(--red); background:linear-gradient(180deg, var(--red-soft) 0%, var(--surface) 55%);">
-        <div class="card-icon icon-red"><svg viewBox="0 0 24 24"><path d="M4 8l6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg></div>
+        <div class="card-icon icon-red" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8l6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg></div>
         <div class="stat-label">Despesas Total</div>
         <div class="stat-value mono" style="color:var(--red); font-size:27px;">${formatBRL(totalSaiAno)}</div>
         <div class="stat-sub">Todas as saídas em ${ano}</div>
       </div>
       <div class="card" style="border-top:5px solid var(--blue); background:linear-gradient(180deg, var(--blue-soft) 0%, var(--surface) 55%);">
-        <div class="card-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.4 5 3.5-2.2 3.5-5 3.5-5-1.4-5-3.5"/></svg></div>
+        <div class="card-icon icon-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.4 5 3.5-2.2 3.5-5 3.5-5-1.4-5-3.5"/></svg></div>
         <div class="stat-label">Lucro Líquido</div>
         <div class="stat-value mono" style="color:var(--blue); font-size:27px;">${formatBRL(lucroLiquido)}</div>
         <div class="stat-sub">Faturamento − Despesas</div>
@@ -3466,7 +3480,7 @@ function renderDashboard(){
     <div class="grid grid-4" style="margin-bottom:22px;">
       ${accountCards}
       <div class="card tone-total">
-        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
+        <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></div>
         <div class="stat-label">Montante Total</div>
         <div class="stat-value mono">${formatBRL(total)}</div>
         <div class="stat-sub" style="color:#8FA097;">Soma de todas as contas</div>
