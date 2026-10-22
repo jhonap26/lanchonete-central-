@@ -366,7 +366,19 @@
      nunca usados por nenhum elemento do layout desktop. */
   #mHeader, #mBottomNav, #mFab, #mSheetBackdrop, #mSheet{ display:none; }
 
+  /* Rodapé "Total dos Lançamentos" (só aparece com filtro ativo) */
+  .lanc-total{ margin-top:14px; padding:14px 16px; border:1px solid var(--border-strong); background:var(--surface-2); border-radius:var(--r); }
+  .lanc-total-title{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--ink-soft); margin-bottom:10px; }
+  .lanc-total-line{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:4px 0; font-size:13.5px; color:var(--ink-soft); }
+  .lanc-total-line .v{ font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .lanc-total-line.pos .v{ color:var(--green); }
+  .lanc-total-line.neg .v{ color:var(--red); }
+  .lanc-total-line.saldo{ margin-top:6px; padding-top:10px; border-top:1px solid var(--border-strong); font-weight:700; color:var(--ink); }
+  .lanc-total-line.saldo .v{ color:var(--blue); font-size:15px; }
+  .lanc-total-meta{ margin-top:8px; font-size:11.5px; color:var(--muted); }
+
   @media(max-width:800px){
+    .lanc-total{ margin-bottom:12px; }
     .shell{ flex-direction:column; }
     .sidebar{ width:100%; flex-direction:row; align-items:center; padding:10px 12px; overflow-x:auto; position:sticky; top:0; height:auto; z-index:20; }
     .sidebar .brand{ display:none; }
@@ -1875,6 +1887,38 @@ function lancRowHTML(e){
     </div>`;
 }
 
+/* Rodapé "Total dos Lançamentos": somente leitura, derivado de state.__filtroLancResult.
+   Retorna '' (nada no DOM) quando não há filtro ativo ou a lista filtrada está vazia. */
+function lancTotalHTML(){
+  const list = state.__filtroLancResult || [];
+  if(resumoFiltrosLanc().semFiltro || !list.length) return '';
+  const mobile = isMobileViewport();
+  const fmt = n => mobile ? mMoney(n) : formatBRL(n);
+  let ent = 0, sai = 0, nEnt = 0, nSai = 0, nTransf = 0;
+  list.forEach(e=>{
+    if(e.movimento==='entrada'){ ent += Number(e.valor)||0; nEnt++; }
+    else if(e.movimento==='saida'){ sai += Number(e.valor)||0; nSai++; }
+    else if(e.movimento==='transferencia'){ nTransf++; }
+  });
+  const plural = (n, s, p) => `${n} ${n===1 ? s : p}`;
+  const saldo = ent - sai;
+  const linhas = [];
+  if(nEnt) linhas.push(`<div class="lanc-total-line pos"><span>Entradas</span><span class="v">${fmt(ent)}</span></div>`);
+  if(nSai) linhas.push(`<div class="lanc-total-line neg"><span>Saídas</span><span class="v">${fmt(sai)}</span></div>`);
+  if(nEnt && nSai) linhas.push(`<div class="lanc-total-line saldo"><span>Total (saldo)</span><span class="v">${saldo<0 && !(mobile && mobileHideValues) ? '− ' : ''}${fmt(Math.abs(saldo))}</span></div>`);
+  const meta = [plural(list.length, 'lançamento', 'lançamentos')];
+  if(nTransf) meta.push(`${plural(nTransf, 'transferência', 'transferências')} (${nTransf===1 ? 'não somada' : 'não somadas'})`);
+  return `<section class="lanc-total" aria-label="Total dos Lançamentos">
+    <div class="lanc-total-title">Total dos Lançamentos</div>
+    <div aria-live="polite" aria-atomic="true">${linhas.join('')}<div class="lanc-total-meta">${meta.join(' · ')}</div></div>
+  </section>`;
+}
+
+function atualizarTotalLanc(){
+  const el = document.getElementById('lancTotalWrap') || document.getElementById('mLancTotalWrap');
+  if(el) el.innerHTML = lancTotalHTML();
+}
+
 function buildLancGroupsHTML(){
   const list = state.__filtroLancResult || [];
   if(!list.length){
@@ -2106,6 +2150,7 @@ function renderLancamentosMobileHTML(){
       <button class="btn btn-danger btn-sm" id="btnExcluirLote">Excluir em lote</button>
     </div>
     <div id="mLancList">${buildLancGroupsHTML()}</div>
+    <div id="mLancTotalWrap">${lancTotalHTML()}</div>
     <div class="m-swipe-hint">← Deslize um lançamento para editar ou excluir</div>
   `;
 }
@@ -2830,6 +2875,7 @@ function renderLancamentos(){
           <tbody id="tblLancBody"></tbody>
         </table>
       </div>
+      <div id="lancTotalWrap"></div>
     </div>
   `;
   document.getElementById('content').innerHTML = html;
@@ -3104,6 +3150,7 @@ function atualizarListaLanc(){
 
   list.sort((a,b)=> b.data.localeCompare(a.data));
   state.__filtroLancResult = list;
+  atualizarTotalLanc();
 
   // A tabela/lista abaixo só existe no template desktop (no mobile, a view
   // Lançamentos usa seus próprios cards, lidos de state.__filtroLancResult acima).
