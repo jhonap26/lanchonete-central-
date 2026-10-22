@@ -354,6 +354,7 @@
   .modal h3{ font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; margin:0 0 8px; font-size:17px; }
   .modal p{ font-size:13.5px; color:var(--ink-soft); line-height:1.55; }
   .modal .modal-actions{ display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
+  #bulkDeleteOk:disabled{ opacity:.45; cursor:not-allowed; }
 
   @media print{
     .sidebar, .topbar .actions, #authScreen, .no-print{ display:none !important; }
@@ -632,6 +633,14 @@
       <button class="btn btn-outline btn-sm" id="confirmCancel">Cancelar</button>
       <button class="btn btn-danger btn-sm" id="confirmOk">Confirmar</button>
     </div>
+  </div>
+</div>
+
+<!-- Exclusão de lançamentos em lote: o conteúdo é montado por abrirExclusaoEmLote() -->
+<div class="modal-bg" id="bulkDeleteModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteTitle" style="max-width:480px; max-height:90vh; overflow-y:auto;">
+    <h3 id="bulkDeleteTitle">Excluir lançamentos em lote</h3>
+    <div id="bulkDeleteBody"></div>
   </div>
 </div>
 
@@ -1201,7 +1210,7 @@ async function loadAllData(){
   await storeSet('lc_initialized', 'true');
 }
 
-async function persistEntries(){ await storeSet('lc_entries', JSON.stringify(state.entries)); }
+async function persistEntries(){ return await storeSet('lc_entries', JSON.stringify(state.entries)); }
 async function persistFornecedores(){ await storeSet('lc_fornecedores', JSON.stringify(state.fornecedores)); }
 async function persistClientes(){ await storeSet('lc_clientes', JSON.stringify(state.clientes)); }
 async function persistFormas(){ await storeSet('lc_formas', JSON.stringify(state.formas)); }
@@ -1246,9 +1255,11 @@ async function baixarBackupCompleto(){
     try{ localStorage.setItem('lc_ultimo_backup', now.toISOString()); }catch(e){ /* localStorage indisponível não é crítico */ }
 
     toastSuccess('Backup baixado com sucesso.');
+    return true;
   } catch(e){
     console.error('Falha ao gerar backup:', e);
     toast('Não foi possível gerar o backup agora. Tente novamente.');
+    return false;
   }
 }
 
@@ -2091,6 +2102,9 @@ function renderLancamentosMobileHTML(){
         ${filtroCount>0?`<span class="m-filter-badge">${filtroCount}</span>`:''}
       </button>
     </div>
+    <div style="display:flex; justify-content:flex-end; margin:-6px 0 14px;">
+      <button class="btn btn-danger btn-sm" id="btnExcluirLote">Excluir em lote</button>
+    </div>
     <div id="mLancList">${buildLancGroupsHTML()}</div>
     <div class="m-swipe-hint">← Deslize um lançamento para editar ou excluir</div>
   `;
@@ -2124,6 +2138,7 @@ function wireLancamentosMobileEvents(){
   });
 
   document.getElementById('mBtnFiltros').addEventListener('click', abrirFiltrosLancamentoMobile);
+  document.getElementById('btnExcluirLote').addEventListener('click', abrirExclusaoEmLote);
 }
 
 /* ================= VIEW MOBILE: CADASTROS ================= */
@@ -2779,6 +2794,7 @@ function renderLancamentos(){
         <div class="actions" style="align-items:center;">
           <span class="mini-note" id="countInfo" style="margin:0;"></span>
           <button class="btn btn-outline btn-sm" id="btnToggleCorrecaoLote">Corrigir conta em lote</button>
+          <button class="btn btn-danger btn-sm" id="btnExcluirLote">Excluir em lote</button>
         </div>
       </div>
       <div class="search-row">
@@ -2863,6 +2879,7 @@ function renderLancamentos(){
     const el = document.getElementById('painelCorrecaoLote');
     el.style.display = el.style.display==='none' ? 'block' : 'none';
   });
+  document.getElementById('btnExcluirLote').addEventListener('click', abrirExclusaoEmLote);
 
   atualizarListaLanc();
 }
@@ -2883,6 +2900,180 @@ async function aplicarCorrecaoContaLote(){
   await persistEntries();
   toastSuccess(`${alvoValido.length} lançamento(s) movido(s) para ${nomeConta} com sucesso!`);
   atualizarListaLanc();
+}
+
+/* ================= EXCLUSÃO EM LOTE DE LANÇAMENTOS =================
+   Age sobre a lista filtrada (state.__filtroLancResult), como a correção de conta
+   em lote. Os ids são capturados ao ABRIR a confirmação, então o que será
+   excluído não muda mesmo se a lista recarregar enquanto o modal está aberto. */
+function escapeHtml(s){
+  return String(s==null ? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function resumoFiltrosLanc(){
+  const f = state.filtroLanc;
+  const periodo = f.periodo==='mes' ? `Mês de ${MESES[f.mes]} (de todos os anos)`
+    : (f.periodo==='dia' && f.dia) ? `Dia ${formatDateBR(f.dia)}`
+    : f.periodo==='dia' ? 'Todos (nenhum dia selecionado)'
+    : 'Todos os períodos';
+  const movLabels = { entrada:'Entradas', saida:'Saídas', transferencia:'Transferências' };
+  const movimento = movLabels[f.movimento] || 'Todos';
+  const categoria = (f.categoria && f.categoria!=='todos') ? f.categoria : 'Todas';
+  const conta = (f.conta && f.conta!=='todos') ? contaNome(f.conta) : 'Todas';
+  const fornecedor = (f.fornecedor && f.fornecedor!=='todos') ? f.fornecedor : 'Todos';
+  const busca = f.busca ? `“${f.busca}”` : '—';
+  const periodoLivre = f.periodo==='todos' || (f.periodo==='dia' && !f.dia);
+  const semFiltro = periodoLivre
+    && (!f.movimento || f.movimento==='todos')
+    && (!f.categoria || f.categoria==='todos')
+    && (!f.conta || f.conta==='todos')
+    && (!f.fornecedor || f.fornecedor==='todos')
+    && !f.busca;
+  return {
+    semFiltro,
+    linhas: [['Período',periodo],['Movimento',movimento],['Categoria',categoria],['Conta',conta],['Fornecedor',fornecedor],['Busca',busca]]
+  };
+}
+
+let _exclusaoLoteEmAndamento = false;
+let _exclusaoLoteFocoAnterior = null;
+
+function _exclusaoLoteEsc(ev){
+  if(ev.key==='Escape' && !_exclusaoLoteEmAndamento) fecharExclusaoLote();
+}
+
+function fecharExclusaoLote(){
+  document.getElementById('bulkDeleteModal').classList.remove('show');
+  document.removeEventListener('keydown', _exclusaoLoteEsc);
+  document.getElementById('bulkDeleteBody').innerHTML = '';
+  if(_exclusaoLoteFocoAnterior && typeof _exclusaoLoteFocoAnterior.focus==='function'){
+    try{ _exclusaoLoteFocoAnterior.focus(); }catch(e){}
+  }
+  _exclusaoLoteFocoAnterior = null;
+}
+
+function abrirExclusaoEmLote(){
+  atualizarListaLanc();
+  const lista = (state.__filtroLancResult || []).slice();
+  if(lista.length===0){ toast('Não há lançamentos na lista filtrada para excluir.'); return; }
+
+  const idsAlvo = new Set(lista.map(e=>e.id));
+  const entradas = lista.filter(e=>e.movimento==='entrada');
+  const saidas = lista.filter(e=>e.movimento==='saida');
+  const transferencias = lista.filter(e=>e.movimento==='transferencia');
+  const soma = arr => arr.reduce((a,e)=> a + (Number(e.valor)||0), 0);
+
+  const { semFiltro, linhas } = resumoFiltrosLanc();
+  const apagaTudo = lista.length === state.entries.length;
+  const exigeTudo = semFiltro || apagaTudo;
+  const palavra = exigeTudo ? 'EXCLUIR TUDO' : 'EXCLUIR';
+
+  const aviso = exigeTudo ? `
+    <div role="alert" style="background:var(--red-soft); color:var(--red); border:1.5px solid var(--red); border-radius:var(--r-sm); padding:12px 14px; font-weight:800; font-size:13px; line-height:1.5; margin:12px 0;">
+      ${semFiltro ? 'Nenhum filtro aplicado: isso excluirá TODOS os lançamentos.' : 'Os filtros atuais abrangem todos os lançamentos do sistema: isso excluirá TODOS os lançamentos.'}
+    </div>` : '';
+
+  document.getElementById('bulkDeleteBody').innerHTML = `
+    <p style="margin:0 0 4px;">Você está prestes a excluir <strong>${lista.length} lançamento(s)</strong> da lista filtrada atual.</p>
+    ${aviso}
+    <div style="margin-top:10px;">
+      <div class="ticket-line"><span class="lbl">Entradas (${entradas.length})</span><span class="dots"></span><span class="val pos">${formatBRL(soma(entradas))}</span></div>
+      <div class="ticket-line"><span class="lbl">Saídas (${saidas.length})</span><span class="dots"></span><span class="val neg">${formatBRL(soma(saidas))}</span></div>
+      <div class="ticket-line"><span class="lbl">Transferências</span><span class="dots"></span><span class="val">${transferencias.length}</span></div>
+      <div class="ticket-line ticket-total"><span class="lbl">Total a excluir</span><span class="dots"></span><span class="val">${lista.length}</span></div>
+    </div>
+    <div class="mini-note" style="margin-top:14px; font-weight:700; color:var(--ink-soft);">Filtros ativos</div>
+    ${linhas.map(([k,v])=>`<div class="mini-note" style="margin:2px 0;">${k}: <strong>${escapeHtml(v)}</strong></div>`).join('')}
+    <p style="color:var(--red); font-weight:800; margin:14px 0 10px;">Esta ação não pode ser desfeita.</p>
+    <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; font-size:13.5px; color:var(--ink-soft); line-height:1.4;">
+      <input type="checkbox" id="bulkDeleteBackup" checked style="margin-top:2px;">
+      <span>Baixar backup (.json) antes de excluir</span>
+    </label>
+    <div class="field" style="margin:14px 0 0;">
+      <label for="bulkDeleteTexto">Para confirmar, digite <strong>${palavra}</strong></label>
+      <input type="text" id="bulkDeleteTexto" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="${palavra}">
+    </div>
+    <div class="mini-note" id="bulkDeleteHint" aria-live="polite" style="min-height:1.2em; margin-top:6px;"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline btn-sm" id="bulkDeleteCancel">Cancelar</button>
+      <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteOk" disabled>Excluir ${lista.length} lançamento(s)</button>
+    </div>
+  `;
+
+  const input = document.getElementById('bulkDeleteTexto');
+  const okBtn = document.getElementById('bulkDeleteOk');
+  const cancelBtn = document.getElementById('bulkDeleteCancel');
+  const chkBackup = document.getElementById('bulkDeleteBackup');
+  const hint = document.getElementById('bulkDeleteHint');
+  const rotuloOk = okBtn.textContent;
+
+  input.addEventListener('input', ()=>{
+    const bate = input.value === palavra;
+    okBtn.disabled = !bate;
+    hint.textContent = (!bate && input.value) ? `O texto precisa ser exatamente ${palavra}.` : '';
+  });
+  cancelBtn.addEventListener('click', fecharExclusaoLote);
+  okBtn.addEventListener('click', async ()=>{
+    if(okBtn.disabled || input.value !== palavra || _exclusaoLoteEmAndamento) return;
+    _exclusaoLoteEmAndamento = true;
+    okBtn.disabled = true; cancelBtn.disabled = true; input.disabled = true; chkBackup.disabled = true;
+    okBtn.textContent = 'Excluindo…';
+    let ok = false;
+    try{
+      ok = await executarExclusaoLote(idsAlvo, chkBackup.checked);
+    } finally {
+      _exclusaoLoteEmAndamento = false;
+    }
+    if(ok){
+      fecharExclusaoLote();
+    } else {
+      okBtn.textContent = rotuloOk;
+      okBtn.disabled = input.value !== palavra;
+      cancelBtn.disabled = false; input.disabled = false; chkBackup.disabled = false;
+    }
+  });
+
+  _exclusaoLoteFocoAnterior = document.activeElement;
+  document.getElementById('bulkDeleteModal').classList.add('show');
+  document.removeEventListener('keydown', _exclusaoLoteEsc);
+  document.addEventListener('keydown', _exclusaoLoteEsc);
+  if(!isMobileViewport()) input.focus();
+}
+
+async function executarExclusaoLote(idsAlvo, comBackup){
+  if(comBackup){
+    const backupOk = await baixarBackupCompleto();
+    if(!backupOk){
+      toast('Backup não gerado: nada foi excluído. Tente de novo ou desmarque a opção de backup.');
+      return false;
+    }
+  }
+
+  const anterior = state.entries;
+  const restantes = anterior.filter(e=> !idsAlvo.has(e.id));
+  const removidos = anterior.length - restantes.length;
+  state.entries = restantes;
+
+  let gravou = false;
+  try{ gravou = await persistEntries(); }
+  catch(e){ console.error('Falha ao gravar exclusão em lote:', e); gravou = false; }
+
+  if(gravou !== true){
+    state.entries = anterior;
+    atualizarListaLanc();
+    toast('Não foi possível gravar a exclusão. Nenhum lançamento foi removido. Verifique a conexão e tente de novo.');
+    return false;
+  }
+
+  toastSuccess(`${removidos} lançamento(s) excluído(s) com sucesso.`);
+  atualizarListaLanc();
+  const mList = document.getElementById('mLancList');
+  if(mList){
+    closeOpenSwipeRow();
+    mList.innerHTML = buildLancGroupsHTML();
+    wireLancRows();
+  }
+  return true;
 }
 
 function atualizarListaLanc(){
