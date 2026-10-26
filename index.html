@@ -867,7 +867,7 @@ const state = {
   categorias: { entradas: SEED_ENTRADAS_CAT.slice(), saidas: SEED_SAIDAS_CAT.slice() },
   currentView: 'dashboard',
   cadastroSub: 'fornecedores',
-  filtroLanc: { periodo:'mes', mes: new Date().getMonth(), dia:'', movimento:'todos', categoria:'todos', conta:'todos', fornecedor:'todos', busca:'' },
+  filtroLanc: { periodo:'mes', mes: new Date().getMonth(), diaInicio:'', diaFim:'', movimento:'todos', categoria:'todos', conta:'todos', fornecedor:'todos', busca:'' },
   mensalMes: new Date().getMonth(),
   mensalAno: new Date().getFullYear(),
   filtroVendasDia: { inicio:'', fim:'' },
@@ -2050,7 +2050,7 @@ function abrirFiltrosLancamentoMobile(){
       <div class="lbl">Ver por</div>
       <div class="m-seg" id="mfPeriodoSeg">
         <button data-v="mes" class="${f.periodo==='mes'?'active':''}">Mês</button>
-        <button data-v="dia" class="${f.periodo==='dia'?'active':''}">Dia</button>
+        <button data-v="periodo" class="${f.periodo==='periodo'?'active':''}">Período</button>
         <button data-v="todos" class="${f.periodo==='todos'?'active':''}">Todos</button>
       </div>
     </div>
@@ -2058,9 +2058,15 @@ function abrirFiltrosLancamentoMobile(){
       <div class="lbl">Mês</div>
       <select id="mfMes">${MESES.map((m,i)=>`<option value="${i}" ${i===f.mes?'selected':''}>${m}</option>`).join('')}</select>
     </div>
-    <div class="m-field" id="mfDiaWrap" style="display:${f.periodo==='dia'?'block':'none'};">
-      <div class="lbl">Dia</div>
-      <input type="date" id="mfDia" value="${f.dia||''}">
+    <div id="mfPeriodoWrap" style="display:${f.periodo==='periodo'?'block':'none'};">
+      <div class="m-field">
+        <div class="lbl">Data inicial</div>
+        <input type="date" id="mfDiaInicio" value="${f.diaInicio||''}" max="${f.diaFim||''}">
+      </div>
+      <div class="m-field">
+        <div class="lbl">Data final</div>
+        <input type="date" id="mfDiaFim" value="${f.diaFim||''}" min="${f.diaInicio||''}">
+      </div>
     </div>
     <div class="m-field">
       <div class="lbl">Movimento</div>
@@ -2102,7 +2108,7 @@ function abrirFiltrosLancamentoMobile(){
       document.querySelectorAll('#mfPeriodoSeg button').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('mfMesWrap').style.display = btn.dataset.v==='mes' ? 'block':'none';
-      document.getElementById('mfDiaWrap').style.display = btn.dataset.v==='dia' ? 'block':'none';
+      document.getElementById('mfPeriodoWrap').style.display = btn.dataset.v==='periodo' ? 'block':'none';
       state.filtroLanc.periodo = btn.dataset.v;
     });
   });
@@ -2115,7 +2121,8 @@ function abrirFiltrosLancamentoMobile(){
   });
   document.getElementById('mfAplicar').addEventListener('click', ()=>{
     state.filtroLanc.mes = Number(document.getElementById('mfMes').value);
-    state.filtroLanc.dia = document.getElementById('mfDia').value;
+    state.filtroLanc.diaInicio = document.getElementById('mfDiaInicio').value;
+    state.filtroLanc.diaFim = document.getElementById('mfDiaFim').value;
     state.filtroLanc.categoria = document.getElementById('mfCategoria').value;
     state.filtroLanc.conta = document.getElementById('mfConta').value;
     state.filtroLanc.fornecedor = document.getElementById('mfFornecedor').value;
@@ -2782,7 +2789,7 @@ function renderLancamentos(){
           <label>Ver por</label>
           <select id="fPeriodo">
             <option value="mes">Mês</option>
-            <option value="dia">Dia específico</option>
+            <option value="periodo">Período específico</option>
             <option value="todos">Todos</option>
           </select>
         </div>
@@ -2790,9 +2797,13 @@ function renderLancamentos(){
           <label>Mês</label>
           <select id="fMes">${MESES.map((m,i)=>`<option value="${i}">${m}</option>`).join('')}</select>
         </div>
-        <div class="field" id="fDiaWrap" style="display:none;">
-          <label>Dia</label>
-          <input type="date" id="fDia">
+        <div class="field" id="fPeriodoWrap" style="display:none;">
+          <label for="fDiaInicio">Data inicial</label>
+          <input type="date" id="fDiaInicio">
+        </div>
+        <div class="field" id="fPeriodoFimWrap" style="display:none;">
+          <label for="fDiaFim">Data final</label>
+          <input type="date" id="fDiaFim">
         </div>
         <div class="field">
           <label>Movimento</label>
@@ -2887,23 +2898,26 @@ function renderLancamentos(){
   const f = state.filtroLanc;
   document.getElementById('fPeriodo').value = f.periodo;
   document.getElementById('fMes').value = f.mes;
-  document.getElementById('fDia').value = f.dia;
+  document.getElementById('fDiaInicio').value = f.diaInicio;
+  document.getElementById('fDiaFim').value = f.diaFim;
+  limitarDatasPeriodoLanc();
   document.getElementById('fMovimento').value = f.movimento;
   document.getElementById('fCategoriaFiltro').value = f.categoria || 'todos';
   document.getElementById('fFiltroConta').value = f.conta || 'todos';
   document.getElementById('fFornecedorFiltro').value = f.fornecedor || 'todos';
   document.getElementById('fBusca').value = f.busca || '';
   document.getElementById('fMesWrap').style.display = f.periodo==='mes' ? '' : 'none';
-  document.getElementById('fDiaWrap').style.display = f.periodo==='dia' ? '' : 'none';
+  mostrarCamposPeriodoLanc();
 
   document.getElementById('fPeriodo').addEventListener('change', e=>{
     f.periodo = e.target.value;
     document.getElementById('fMesWrap').style.display = f.periodo==='mes' ? '' : 'none';
-    document.getElementById('fDiaWrap').style.display = f.periodo==='dia' ? '' : 'none';
+    mostrarCamposPeriodoLanc();
     atualizarListaLanc();
   });
   document.getElementById('fMes').addEventListener('change', e=>{ f.mes = Number(e.target.value); atualizarListaLanc(); });
-  document.getElementById('fDia').addEventListener('change', e=>{ f.dia = e.target.value; atualizarListaLanc(); });
+  document.getElementById('fDiaInicio').addEventListener('change', e=>{ f.diaInicio = e.target.value; limitarDatasPeriodoLanc(); atualizarListaLanc(); });
+  document.getElementById('fDiaFim').addEventListener('change', e=>{ f.diaFim = e.target.value; limitarDatasPeriodoLanc(); atualizarListaLanc(); });
   document.getElementById('fMovimento').addEventListener('change', e=>{ f.movimento = e.target.value; atualizarListaLanc(); });
   document.getElementById('fCategoriaFiltro').addEventListener('change', e=>{ f.categoria = e.target.value; atualizarListaLanc(); });
   document.getElementById('fFiltroConta').addEventListener('change', e=>{ f.conta = e.target.value; atualizarListaLanc(); });
@@ -2928,6 +2942,19 @@ function renderLancamentos(){
   document.getElementById('btnExcluirLote').addEventListener('click', abrirExclusaoEmLote);
 
   atualizarListaLanc();
+}
+
+function mostrarCamposPeriodoLanc(){
+  const ativo = state.filtroLanc.periodo==='periodo';
+  document.getElementById('fPeriodoWrap').style.display = ativo ? '' : 'none';
+  document.getElementById('fPeriodoFimWrap').style.display = ativo ? '' : 'none';
+}
+
+// Impede escolher data inicial depois da final (e vice-versa) no seletor de datas.
+function limitarDatasPeriodoLanc(){
+  const ini = document.getElementById('fDiaInicio'), fim = document.getElementById('fDiaFim');
+  ini.max = fim.value || '';
+  fim.min = ini.value || '';
 }
 
 async function aplicarCorrecaoContaLote(){
@@ -2959,8 +2986,10 @@ function escapeHtml(s){
 function resumoFiltrosLanc(){
   const f = state.filtroLanc;
   const periodo = f.periodo==='mes' ? `Mês de ${MESES[f.mes]} (de todos os anos)`
-    : (f.periodo==='dia' && f.dia) ? `Dia ${formatDateBR(f.dia)}`
-    : f.periodo==='dia' ? 'Todos (nenhum dia selecionado)'
+    : (f.periodo==='periodo' && f.diaInicio && f.diaFim) ? (f.diaInicio===f.diaFim ? `Dia ${formatDateBR(f.diaInicio)}` : `De ${formatDateBR(f.diaInicio)} a ${formatDateBR(f.diaFim)}`)
+    : (f.periodo==='periodo' && f.diaInicio) ? `A partir de ${formatDateBR(f.diaInicio)}`
+    : (f.periodo==='periodo' && f.diaFim) ? `Até ${formatDateBR(f.diaFim)}`
+    : f.periodo==='periodo' ? 'Todos (nenhuma data selecionada)'
     : 'Todos os períodos';
   const movLabels = { entrada:'Entradas', saida:'Saídas', transferencia:'Transferências' };
   const movimento = movLabels[f.movimento] || 'Todos';
@@ -2968,7 +2997,7 @@ function resumoFiltrosLanc(){
   const conta = (f.conta && f.conta!=='todos') ? contaNome(f.conta) : 'Todas';
   const fornecedor = (f.fornecedor && f.fornecedor!=='todos') ? f.fornecedor : 'Todos';
   const busca = f.busca ? `“${f.busca}”` : '—';
-  const periodoLivre = f.periodo==='todos' || (f.periodo==='dia' && !f.dia);
+  const periodoLivre = f.periodo==='todos' || (f.periodo==='periodo' && !f.diaInicio && !f.diaFim);
   const semFiltro = periodoLivre
     && (!f.movimento || f.movimento==='todos')
     && (!f.categoria || f.categoria==='todos')
@@ -3127,7 +3156,12 @@ function atualizarListaLanc(){
   let list = state.entries.slice();
 
   if(f.periodo==='mes'){ list = list.filter(e=> entryMonth(e)===f.mes); }
-  else if(f.periodo==='dia' && f.dia){ list = list.filter(e=> e.data===f.dia); }
+  else if(f.periodo==='periodo' && (f.diaInicio || f.diaFim)){
+    // datas ISO (aaaa-mm-dd) comparam corretamente como texto; extremo vazio = sem limite
+    let ini = f.diaInicio, fim = f.diaFim;
+    if(ini && fim && ini>fim){ const t = ini; ini = fim; fim = t; }
+    list = list.filter(e=> (!ini || e.data>=ini) && (!fim || e.data<=fim));
+  }
 
   if(f.movimento && f.movimento!=='todos'){ list = list.filter(e=>e.movimento===f.movimento); }
   if(f.categoria && f.categoria!=='todos'){ list = list.filter(e=> e.categoria===f.categoria); }
