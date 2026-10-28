@@ -2213,7 +2213,7 @@ function mCadRowHTML(nome, sub, id, i, cor, valorText, canDelete){
 function renderCadContentMobile(sub){
   const list = document.getElementById('mCadList');
   const addBtn = document.getElementById('mBtnCadAdd');
-  const labels = { fornecedores:'fornecedor', clientes:'cliente', formas:'forma de pagamento', bancos:'conta' };
+  const labels = { fornecedores:'fornecedor', clientes:'cliente', formas:'forma de pagamento', categorias:'categoria', bancos:'conta' };
   if(addBtn){
     if(sub==='backup'){ addBtn.style.display = 'none'; }
     else { addBtn.style.display = ''; addBtn.textContent = '+ Adicionar ' + labels[sub]; }
@@ -2259,6 +2259,13 @@ function renderCadContentMobile(sub){
     rows = arr.map((c,i)=> mCadRowHTML(c.nome, c.contato || c.obs || '—', c.id, i, null, null, true));
   } else if(sub==='formas'){
     rows = state.formas.map((f,i)=> mCadRowHTML(f.nome, 'Forma de pagamento', f.id, i, null, null, true));
+  } else if(sub==='categorias'){
+    const todas = state.categorias.entradas.map(c=>({ tipo:'entrada', nome:c })).concat(state.categorias.saidas.map(c=>({ tipo:'saida', nome:c })));
+    rows = todas.map((c,i)=>{
+      const cor = c.tipo==='entrada' ? { bg:'var(--green-soft)', fg:'var(--green)' } : { bg:'var(--red-soft)', fg:'var(--red)' };
+      const uso = usoCategoria(c.nome);
+      return mCadRowHTML(escapeHtml(c.nome), (c.tipo==='entrada' ? 'Entrada' : 'Saída') + ' · ' + uso + (uso===1 ? ' lançamento' : ' lançamentos'), escapeHtml(c.tipo + '|' + c.nome), i, cor, null, true);
+    });
   } else if(sub==='bancos'){
     const saldo = saldosPorConta();
     rows = state.contas.map((c,i)=>{
@@ -2272,6 +2279,11 @@ function renderCadContentMobile(sub){
   list.querySelectorAll('[data-delcadm]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const id = btn.dataset.delcadm;
+      if(sub==='categorias'){
+        const sep = id.indexOf('|');
+        if(await removerCategoria(id.slice(0,sep), id.slice(sep+1))) renderCadContent();
+        return;
+      }
       const ok = await confirmDialog('Remover cadastro?', 'Lançamentos que já usam esse nome não serão apagados, apenas o cadastro.');
       if(!ok) return;
       if(sub==='fornecedores'){ state.fornecedores = state.fornecedores.filter(x=>x.id!==id); await persistFornecedores(); }
@@ -2286,11 +2298,15 @@ function renderCadContentMobile(sub){
 
 function abrirCadAddSheetMobile(){
   const sub = state.cadastroSub;
-  const titles = { fornecedores:'Novo fornecedor', clientes:'Novo cliente', formas:'Nova forma de pagamento', bancos:'Nova conta/banco' };
+  const titles = { fornecedores:'Novo fornecedor', clientes:'Novo cliente', formas:'Nova forma de pagamento', categorias:'Nova categoria', bancos:'Nova conta/banco' };
 
   let bodyHTML = `<div class="m-field"><div class="lbl">Nome</div><input type="text" id="mCadNome" placeholder="${sub==='bancos' ? 'Ex: Banco C, Nubank...' : 'Nome'}"></div>`;
   if(sub==='fornecedores' || sub==='clientes'){
     bodyHTML += `<div class="m-field"><div class="lbl">Contato</div><input type="text" id="mCadContato" placeholder="Telefone / e-mail (opcional)"></div>`;
+  } else if(sub==='categorias'){
+    bodyHTML += `<div class="m-field"><div class="lbl">Tipo</div>
+      <select id="mCadTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select>
+    </div>`;
   } else if(sub==='bancos'){
     bodyHTML += `<div class="m-field"><div class="lbl">Cor de identificação</div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -2318,6 +2334,10 @@ function abrirCadAddSheetMobile(){
   document.getElementById('mCadSalvar').addEventListener('click', async ()=>{
     const nome = document.getElementById('mCadNome').value.trim();
     if(!nome){ toast('Informe um nome.'); return; }
+    if(sub==='categorias'){
+      if(await adicionarCategoria(document.getElementById('mCadTipo').value, nome)){ closeMSheet(); renderCadContent(); }
+      return;
+    }
     if(sub==='fornecedores'){
       state.fornecedores.push({ id: uid(), nome, contato: document.getElementById('mCadContato').value.trim(), obs:'' });
       await persistFornecedores();
@@ -2404,6 +2424,111 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 /* ================= VIEW: CADASTROS ================= */
 
+/* Categorias cadastráveis. Só mexem em state.categorias (já persistido em lc_categorias);
+   as categorias atuais continuam intactas. Uma categoria só pode ser excluída se nenhum
+   lançamento a usa, para não alterar os totais já calculados. */
+const CATEGORIAS_PROTEGIDAS = ['Insumos Lanchonete','Insumos Produção']; // base do cálculo de CMV (Mensal)
+
+function usoCategoria(nome){ return state.entries.filter(e=> e.categoria===nome).length; }
+
+function gravarCategorias(){ return storeSet('lc_categorias', JSON.stringify(state.categorias)); }
+
+async function adicionarCategoria(tipo, nomeBruto){
+  const nome = String(nomeBruto||'').trim().replace(/\s+/g,' ');
+  if(!nome){ toast('Informe o nome da categoria.'); return false; }
+  if(nome.length>40){ toast('O nome da categoria pode ter no máximo 40 caracteres.'); return false; }
+  if(/[<>"]/.test(nome)){ toast('O nome não pode conter < > ou aspas duplas.'); return false; }
+  const chave = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const existente = state.categorias.entradas.concat(state.categorias.saidas).find(c=> chave(c)===chave(nome));
+  if(existente){ toast(`Já existe a categoria "${existente}".`); return false; }
+  const lista = tipo==='entrada' ? state.categorias.entradas : state.categorias.saidas;
+  lista.push(nome);
+  let ok = false;
+  try{ ok = await gravarCategorias(); } catch(e){ console.error('Falha ao gravar categorias:', e); }
+  if(ok !== true){
+    lista.pop();
+    toast('Não foi possível salvar a categoria. Verifique a conexão e tente de novo.');
+    return false;
+  }
+  toastSuccess('Categoria adicionada com sucesso.');
+  return true;
+}
+
+async function removerCategoria(tipo, nome){
+  const lista = tipo==='entrada' ? state.categorias.entradas : state.categorias.saidas;
+  const idx = lista.indexOf(nome);
+  if(idx<0) return false;
+  if(CATEGORIAS_PROTEGIDAS.includes(nome)){
+    toast('Usada no cálculo de CMV: não pode ser removida.');
+    return false;
+  }
+  const uso = usoCategoria(nome);
+  if(uso>0){
+    toast(`Em uso por ${uso} lançamento(s): não pode ser removida.`);
+    return false;
+  }
+  const ok = await confirmDialog(`Remover a categoria "${nome}"?`, 'Nenhum lançamento usa essa categoria. Ela deixa de aparecer nas listas de escolha.');
+  if(!ok) return false;
+  lista.splice(idx,1);
+  let gravou = false;
+  try{ gravou = await gravarCategorias(); } catch(e){ console.error('Falha ao gravar categorias:', e); }
+  if(gravou !== true){
+    lista.splice(idx,0,nome);
+    toast('Não foi possível remover a categoria. Verifique a conexão e tente de novo.');
+    return false;
+  }
+  toast('Categoria removida.');
+  return true;
+}
+
+function renderCadCategorias(el){
+  const linhas = [
+    ...state.categorias.entradas.map(c=>({ tipo:'entrada', nome:c })),
+    ...state.categorias.saidas.map(c=>({ tipo:'saida', nome:c }))
+  ];
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Nova categoria</h3></div>
+      <div class="form-grid">
+        <div class="field"><label for="cadCatNome">Nome</label><input type="text" id="cadCatNome" maxlength="40" placeholder="Ex: Gorjetas, Aluguel, Embalagens..."></div>
+        <div class="field"><label for="cadCatTipo">Tipo</label>
+          <select id="cadCatTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAddCat" style="margin-top:14px;">＋ Adicionar</button>
+      <div class="mini-note">Entradas cujo nome começa com "Vendas" entram nos cards e gráficos de vendas. Uma categoria só pode ser removida se nenhum lançamento a usa.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Categorias cadastradas (${linhas.length})</h3></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Nome</th><th>Tipo</th><th style="text-align:right;">Lançamentos</th><th></th></tr></thead>
+          <tbody>
+            ${linhas.map(l=>`
+              <tr>
+                <td style="font-weight:600;">${escapeHtml(l.nome)}</td>
+                <td>${l.tipo==='entrada' ? '<span class="badge badge-ok">Entrada</span>' : '<span class="badge" style="background:var(--red-soft); color:var(--red);">Saída</span>'}</td>
+                <td class="num">${usoCategoria(l.nome)}</td>
+                <td><button class="btn btn-ghost btn-sm" data-delcat-tipo="${l.tipo}" data-delcat-nome="${escapeHtml(l.nome)}" style="color:var(--red);">🗑 Remover</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  const adicionar = async ()=>{
+    const input = document.getElementById('cadCatNome');
+    if(await adicionarCategoria(document.getElementById('cadCatTipo').value, input.value)) renderCadContent();
+  };
+  document.getElementById('btnAddCat').addEventListener('click', adicionar);
+  document.getElementById('cadCatNome').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); adicionar(); } });
+  el.querySelectorAll('[data-delcat-nome]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(await removerCategoria(btn.dataset.delcatTipo, btn.dataset.delcatNome)) renderCadContent();
+    });
+  });
+}
+
 function renderCadastros(){
   document.getElementById('topbarActions').innerHTML = '';
 
@@ -2413,6 +2538,7 @@ function renderCadastros(){
         <button class="m-chip ${state.cadastroSub==='fornecedores'?'active':''}" data-tab="fornecedores">Fornecedores</button>
         <button class="m-chip ${state.cadastroSub==='clientes'?'active':''}" data-tab="clientes">Clientes</button>
         <button class="m-chip ${state.cadastroSub==='formas'?'active':''}" data-tab="formas">Pagamento</button>
+        <button class="m-chip ${state.cadastroSub==='categorias'?'active':''}" data-tab="categorias">Categorias</button>
         <button class="m-chip ${state.cadastroSub==='bancos'?'active':''}" data-tab="bancos">Bancos/Contas</button>
         <button class="m-chip ${state.cadastroSub==='backup'?'active':''}" data-tab="backup">Backup</button>
       </div>
@@ -2438,6 +2564,7 @@ function renderCadastros(){
       <button data-tab="fornecedores" class="${state.cadastroSub==='fornecedores'?'active':''}">Fornecedores</button>
       <button data-tab="clientes" class="${state.cadastroSub==='clientes'?'active':''}">Clientes</button>
       <button data-tab="formas" class="${state.cadastroSub==='formas'?'active':''}">Formas de Pagamento</button>
+      <button data-tab="categorias" class="${state.cadastroSub==='categorias'?'active':''}">Categorias</button>
       <button data-tab="bancos" class="${state.cadastroSub==='bancos'?'active':''}">Bancos / Contas</button>
       <button data-tab="backup" class="${state.cadastroSub==='backup'?'active':''}">Backup</button>
     </div>
@@ -2516,6 +2643,8 @@ function renderCadContent(){
         renderCadContent();
       });
     });
+  } else if(sub==='categorias'){
+    renderCadCategorias(el);
   } else if(sub==='formas'){
     el.innerHTML = `
       <div class="panel">
